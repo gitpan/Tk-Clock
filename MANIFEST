@@ -1,0 +1,6 @@
+ChangeLog
+MANIFEST
+Makefile.PL
+README
+Clock.pm
+t/clock.t

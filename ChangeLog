@@ -1,0 +1,19 @@
+*** Release 0.02
+
+    Wed 22 Jul 1998 <merijn@hempseed.com>
+
+	- Support date/time formats through config
+
+*** Release 0.01
+
+    Mon 20 Jul 1998 <merijn@hempseed.com>
+
+	- First attempt to get it on the CPAN
+	- Added config ()
+	- minimized update of the text fields
+
+*** Release 0.00
+
+    Tue 09 Jun 1998 <merijn@hempseed.com>
+
+	- First post to Achim, as excerpt from xamen.pl

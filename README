@@ -1,0 +1,18 @@
+This is a canvas clock widget with both analog and digital representation
+of both time and date.
+
+It is reasonable configurable for as far as colors and fonts and the way
+time and date is displayed.
+
+The year is displayed in two digits, which makes it not Y2K compliant.
+
+The format of the date is fixed at DD-MM-YY, which should be
+configurable in the future, though it's rather ease to modify
+this behaviour.
+
+make test should run the clock with some contrasting colors
+for about ten seconds. The first 5 seconds with an european
+time/date format, the next 5 seconds with an amarican like
+time/date format (for wich I shouldn't actualy support formats,
+cause amaricans do often not support european formats, but I
+thought, I'd be nice for this time).
