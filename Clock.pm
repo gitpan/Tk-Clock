@@ -27,8 +27,9 @@ $clock->config (	# These reflect the defaults
 Create a clock canvas with both an analog- and a digital display. Either
 can be disabled by setting useAnalog or useDigital to 0 resp.
 
-Legal dateFormat characters are d and dd for date, m and mm for month,
-y and yy for year and any separators :, -, / or space.
+Legal dateFormat characters are d and dd for date, ddd and dddd for weekday,
+m, mm, mmm and mmmm for month, y and yy for year and
+any separators :, -, / or space.
 
 Legal timeFormat characters are H and HH for hour, h and hh for AM/PM hour,
 M and MM for minutes, S and SS for seconds, A for AM/PM indicator and any
@@ -39,10 +40,7 @@ separators :, -, . or space.
 If the system load's too high, the clock might skip some seconds.
 
 Due to the fact that the year is expressed in 2 digit's, this
-widget is not (yet) Y2K compliant.
-
-ddd and dddd for the (abbreviated) day of the week and
-mmm and mmmm for the (abbreviated) month are not (yet) supported.
+widget is not Y2K compliant in the default configuration.
 
 There's no check if either format will fit in the given space.
 
@@ -66,6 +64,7 @@ Thanks to Sriram Srinivasan for understanding OO though his Panther book.
 
 package Tk::Clock;
 
+use Carp;
 use strict;
 use vars qw/$VERSION @ISA/;
 
@@ -74,7 +73,7 @@ use Tk::Derived;
 use Tk::Canvas;
 
 @ISA = qw/Tk::Derived Tk::Canvas/;
-$VERSION = "0.03";
+$VERSION = "0.05";
 
 Construct Tk::Widget "Clock";
 
@@ -95,8 +94,8 @@ my %def_config = (
     useAnalog	=> 1,
 
     fmtd	=> sub {
-	my ($d, $m, $y) = @_;
-	sprintf "%02d-%02d-%02d", $d, $m + 1, $y;
+	my ($d, $m, $y, $w) = @_;
+	sprintf "%02d-%02d-%02d", $d, $m + 1, $y % 100;
 	},
     fmtt	=> sub {
 	my ($h, $m, $s) = @_;
@@ -104,13 +103,40 @@ my %def_config = (
 	},
     );
 
+sub month ($$)
+{
+    [[  "1", "01", "Jan", "January"	],
+     [  "2", "02", "Feb", "February"	],
+     [  "3", "03", "Mar", "March"	],
+     [  "4", "04", "Apr", "April"	],
+     [  "5", "05", "May", "May"		],
+     [  "6", "06", "Jun", "June"	],
+     [  "7", "07", "Jul", "July"	],
+     [  "8", "08", "Aug", "August"	],
+     [  "9", "09", "Sep", "September"	],
+     [ "10", "10", "Oct", "October"	],
+     [ "11", "11", "Nov", "November"	],
+     [ "12", "12", "Dec", "December"	]]->[$_[0]][$_[1]];
+    } # month
+
+sub wday ($$)
+{
+    [[ "Sun", "Sunday"		],
+     [ "Mon", "Monday"		],
+     [ "Tue", "Tuesday"		],
+     [ "Wed", "Wednesday"	],
+     [ "Thu", "Thursday"	],
+     [ "Fri", "Friday"		],
+     [ "Sat", "Saturday"	]]->[$_[0]][$_[1]];
+    } # wday
+
 sub resize ($)
 {
     my $clock = shift;
 
     my $data = $clock->privateData;
     my $hght = $data->{useAnalog}  * 73 + $data->{useDigital} * 26 + 1;
-    $clock->cget (-height) == $hght && return;
+    $clock->cget (-height) == $hght and return;
     $clock->configure (-height => $hght);
     } # resize
 
@@ -158,8 +184,8 @@ sub createAnalog ($)
 	my $l = $tick % 15 == 0 ? 28 :
 		$tick %  5 == 0 ? 30 : 33;
 	my $a = $tick * .104720;
-	my $x = sin ($a);
-	my $y = cos ($a);
+	my $x = sin $a;
+	my $y = cos $a;
 	$clock->createLine (
 	    36 + $x * $l, 36 - $y * $l,
 	    36 + $x * 35, 36 - $y * 35,
@@ -205,8 +231,8 @@ sub Populate
         -takefocus          => [ qw(SELF takefocus          Takefocus          0     ) ],
         );
 
-    $data->{useDigital} && $clock->createDigital;
-    $data->{useAnalog}  && $clock->createAnalog;
+    $data->{useDigital} and $clock->createDigital;
+    $data->{useAnalog}  and $clock->createAnalog;
 	
     $clock->repeat (995, ["run" => $clock]);
     } # Populate
@@ -215,8 +241,8 @@ sub config ($@)
 {
     my $clock = shift;
 
-    ref $clock || die "Bad method call";
-    @_ || return;
+    ref $clock or croak "Bad method call";
+    @_ or return;
 
     my $conf;
     if (ref $_[0] eq "HASH") {
@@ -227,13 +253,13 @@ sub config ($@)
 	$conf = \%conf;
 	}
     else {
-	die "Bad hash";
+	croak "Bad hash";
 	}
 
     my $data = $clock->privateData;
     foreach my $conf_spec (keys %def_config) {
-	defined $conf->{$conf_spec} || next;
-	defined $data->{$conf_spec} || next;
+	defined $conf->{$conf_spec} or next;
+	defined $data->{$conf_spec} or next;
 	my $old = $data->{$conf_spec};
 	$data->{$conf_spec} = $conf->{$conf_spec};
 	if    ($conf_spec eq "tickColor") {
@@ -259,30 +285,44 @@ sub config ($@)
 	    my %fmt = (
 		"d"	=> '%d',	# 6
 		"dd"	=> '%02d',	# 06
-		"ddd"	=> '%3s',	# Mon (NYI)
+		"ddd"	=> '%3s',	# Mon    (NYI)
+		"dddd"	=> '%s',	# Monday (NYI)
 		"m"	=> '%d',	# 7
 		"mm"	=> '%02d',	# 07
-		"mmm"	=> '%3s',	# Jul (NYI)
+		"mmm"	=> '%3s',	# Jul    (NYI)
+		"mmmm"	=> '%s',	# July   (NYI)
 		"y"	=> '%d',	# 98
 		"yy"	=> '%02d',	# 98
 		"yyy"	=> '%04d',	# 1998
 		);
 	    my $fmt = $data->{dateFormat};
-	    $fmt =~ m(^[-dmy/: ]+$) || die "Bad dateFormat";
+	    $fmt =~ m(^[-dmy/: \n]*$) or croak "Bad dateFormat";
 	    my @fmt = split m/([^dmy]+)/, $fmt;
-	    my $arg = "";
+	    my $args = "";
 	    $fmt = "";
 	    foreach my $f (@fmt) {
 		if (defined $fmt{$f}) {
 		    $fmt .= $fmt{$f};
-		    $arg .= ', $' . substr ($f, 0, 1);
+		    if ($f =~ m/^m+$/) {
+			my $l = length ($f) - 1;
+			$args .= ", Tk::Clock::month (\$m, $l)";
+			}
+		    elsif ($f =~ m/^ddd+/) {
+			my $l = length ($f) - 3;
+			$args .= ", Tk::Clock::wday (\$w, $l)";
+			}
+		    else {
+			$args .= ', $' . substr ($f, 0, 1);
+			$f =~ m/^y+$/ and
+			    $args .= length ($f) < 3 ? " % 100" : " + 1900";
+			}
 		    }
 		else {
 		    $fmt .= $f;
 		    }
 		}
 	    $data->{Clock_h} = -1;	# force update;
-	    $data->{fmtd}=eval"sub{my(\$d,\$m,\$y)=\@_;\$m++;sprintf \"$fmt\"$arg;}";
+	    $data->{fmtd}=eval"sub{my(\$d,\$m,\$y,\$w)=\@_;sprintf qq!$fmt!$args;}";
 	    }
 	elsif ($conf_spec eq "timeFormat") {
 	    my %fmt = (
@@ -297,7 +337,7 @@ sub config ($@)
 		"A"	=> '%s',	# PM
 		);
 	    my $fmt = $data->{timeFormat};
-	    $fmt =~ m(^[-AhHMS\.: ]+$) || die "Bad timeFormat";
+	    $fmt =~ m(^[-AhHMS\.: ]*$) or croak "Bad timeFormat";
 	    my @fmt = split m/([^AhHMS]+)/, $fmt;
 	    my $arg = "";
 	    $fmt = "";
@@ -316,12 +356,12 @@ sub config ($@)
 	    if    ($old == 1 && $data->{useAnalog} == 0) {
 		$clock->destroyAnalog;
 		$clock->destroyDigital;
-		$data->{useDigital} && $clock->createDigital;
+		$data->{useDigital} and $clock->createDigital;
 		}
 	    elsif ($old == 0 && $data->{useAnalog} == 1) {
 		$clock->destroyDigital;
 		$clock->createAnalog;
-		$data->{useDigital} && $clock->createDigital;
+		$data->{useDigital} and $clock->createDigital;
 		}
 	    $clock->resize;
 	    $clock->after (5, ["run" => $clock]);
@@ -345,8 +385,8 @@ sub where ($$$)
     my ($x, $y, $a);
 
     $a = $tick * .104720;
-    $x = sin ($a) * $len;
-    $y = cos ($a) * $len;
+    $x = $len  * sin $a;
+    $y = $len  * cos $a;
     (36 - $x / 4, 36 + $y / 4, 36 + $x, 36 - $y);
     } # where
 
@@ -354,15 +394,15 @@ sub run ($)
 {
     my $clock = shift;
 
-    my (@t) = localtime (time);
+    my (@t) = localtime time;
 
     my $data = $clock->privateData;
 
     unless ($t[2] == $data->{Clock_h}) {
 	$data->{Clock_h} = $t[2];
-	$data->{useDigital} &&
+	$data->{useDigital} and
 	    $clock->itemconfigure ("date",
-		-text => &{$data->{fmtd}} (@t[3,4,5]));
+		-text => &{$data->{fmtd}} (@t[3,4,5,6]));
 	}
 
     unless ($t[1] == $data->{Clock_m}) {
@@ -397,7 +437,7 @@ sub run ($)
 		    -fill  => $data->{secsColor},
 		    -width => 0.8);
 	    }
-	$data->{useDigital} &&
+	$data->{useDigital} and
 	    $clock->itemconfigure ("time",
 		-text => &{$data->{fmtt}} (@t[2,1,0]));
         } 

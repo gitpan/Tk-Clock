@@ -1,21 +1,50 @@
-This is a canvas clock widget with both analog and digital
-representation of both time and date.
+Tk-Clock
 
-It is reasonable configurable for as far as colors and fonts
-and the way time and date is displayed.
+DESCRIPTION
+    A canvas clock widget with both analog and digital represen-
+    tation of both time and date.
 
-The year is displayed in two digits, which makes it not Y2K
-compliant.
+    It is reasonable configurable for as far as colors and fonts
+    and the way time and date is displayed.
 
-The format of the date is fixed at DD-MM-YY, which should be
-configurable in the future, though it's rather ease to modify
-this behaviour.
+    The year is displayed in two digits  in the default configu-
+    ration, which makes it not Y2K compliant.
 
-make test should run the clock with some contrasting colors
-for about 20 seconds. The first 5 seconds with both analog-
-and digital clock enabled, the next 5 secs only analog, than
-5 secs only digital.  The last 5 seconds with both analog-
-and digital clock enabled using an amarican like time/date
-format (for wich I shouldn't actualy support formats, cause
-amaricans do often not support european formats, but I thought,
-I'd be nice for this time).
+COPYRIGHT
+    See Clock.pm
+
+PREREQUISITES
+    perl5 (probably 5.005.04 or better)
+    Tk (probably 400.xxx or better)
+
+    I'm able to test it on perl versions 5.004.04, 5.005.02 and
+    5.005.03 on  Tk 800.012 and Tk 800.014,  but it doesn't use
+    stange or undocumented features, so it will probably run on
+    older Tk and/or perl versions.
+
+BUILDING AND INSTALLATION
+    As all CPAN modules:
+	# perl Makefile.PL
+	# make test
+	# make install
+
+    make test should run the clock with some changing contrasting
+    colors showing the following configurations for 4 seconds each:
+    	1. Both analog and digital clock,
+    	2. Only analog clock,
+    	3. Only digital clock,
+    	4. Both analog- and digital clock using an american like
+    	   time/date format (for wich I shouldn't actualy support
+    	   formats, cause amaricans do often not support european
+    	   formats, but I thought, I'd be nice for this time),
+	5. Only digital clock with an empty time format and a
+	   double line date format showing the day of the week
+	   and the date.
+
+CHANGES
+    See ChangeLog
+
+PLANNED ENHANCEMENTS
+    Scaling (preferably dynamic).
+    Full support for multi-line date- and time-formats with auto-
+    resize.

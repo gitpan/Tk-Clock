@@ -1,3 +1,20 @@
+*** Release 0.05
+
+    Wed 07 Apr 1999 <merijn@hempseed.com>
+
+	- Updated the README
+	- Implemented ddd, dddd, mmm, mmmm (English only)
+	- Enabled \n in date format. If combined with empty time
+	  format, formats like "dddd\nd mmm yyyy" can be used.
+
+*** Release 0.04
+
+    Tue 15 Dec 1998 <merijn@hempseed.com>
+
+	- Changed README according to perlmodlib manpage
+	- Made date formats more Y2K reliable
+	  dd-mm-yyy still doesn't fit in the allocated space
+
 *** Release 0.03
 
     Wed 26 Aug 1998 <merijn@hempseed.com>
