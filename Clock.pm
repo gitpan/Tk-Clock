@@ -10,11 +10,13 @@ use Tk::Clock;
 $clock = $parent->Clock (?-option => <value> ...?);
 
 $clock->config (	# These reflect the defaults
-    useAnalog	=> 1,
     useDigital	=> 1,
+    useAnalog	=> 1,
+    anaScale	=> 100,
     handColor	=> "Green4",
     secsColor	=> "Green2",
     tickColor	=> "Yellow4",
+    tickFreq	=> 1,
     timeFont	=> "fixed",
     timeColor	=> "Red4",
     timeFormat	=> "HH.MM:SS",
@@ -35,6 +37,14 @@ Legal timeFormat characters are H and HH for hour, h and hh for AM/PM hour,
 M and MM for minutes, S and SS for seconds, A for AM/PM indicator and any
 separators :, -, . or space.
 
+Meaningful values for tickFreq are 1, 5 and 15 showing all ticks, tick
+every 5 minutes or the four main ticks only, though any positive integer
+will do (put a tick on any tickFreq minute).
+
+The analog clock can be enlaged or reduced using anaScale for which the
+default of 100% is about 72x72 pixels. Future enhancement will include
+auto sizing for anaScale 0.
+
 =head1 BUGS
 
 If the system load's too high, the clock might skip some seconds.
@@ -46,9 +56,9 @@ There's no check if either format will fit in the given space.
 
 =head1 TODO
 
-* Scalability would be a nice feature.
 * Using POSIX' strftime () for dateFormat. Current implementation
   would probably make this very slow.
+* Auto sizing to fit (analog) clock in given space.
 
 =head1 AUTHOR
 
@@ -57,7 +67,7 @@ H.Merijn Brand <merijn@hempseed.com>
 Thanks to Larry Wall for inventing perl.
 Thanks to Nick Ing-Simmons for providing perlTk.
 Thanks to Achim Bohnet for introducing me to OO (and converting
-    the basics of my clock.pl to clock.pm).
+    the basics of my clock.pl to Tk::Clock.pm).
 Thanks to Sriram Srinivasan for understanding OO though his Panther book.
 
 =cut
@@ -73,9 +83,13 @@ use Tk::Derived;
 use Tk::Canvas;
 
 @ISA = qw/Tk::Derived Tk::Canvas/;
-$VERSION = "0.05";
+$VERSION = "0.06";
 
 Construct Tk::Widget "Clock";
+
+my $ana_base = 73;	# Size base for 100%
+my $ana_size = 73;	# Default size
+my $dig_size = 26;
 
 my %def_config = (
     handColor	=> "Green4",
@@ -92,6 +106,8 @@ my %def_config = (
 
     useDigital	=> 1,
     useAnalog	=> 1,
+    anaScale	=> 100,
+    tickFreq	=> 1,
 
     fmtd	=> sub {
 	my ($d, $m, $y, $w) = @_;
@@ -130,14 +146,28 @@ sub wday ($$)
      [ "Sat", "Saturday"	]]->[$_[0]][$_[1]];
     } # wday
 
+sub max ($$)
+{
+    $_[0] >= $_[1] ? $_[0] : $_[1];
+    } # max
+
+sub auto_size ()
+{
+    $ana_size > 0 and return $ana_size;
+    } # auto_size
+
 sub resize ($)
 {
     my $clock = shift;
 
     my $data = $clock->privateData;
-    my $hght = $data->{useAnalog}  * 73 + $data->{useDigital} * 26 + 1;
-    $clock->cget (-height) == $hght and return;
-    $clock->configure (-height => $hght);
+    my $hght = $data->{useAnalog}  * $ana_size + $data->{useDigital} * $dig_size + 1;
+    my $wdth = max ($data->{useAnalog} * $ana_size, $data->{useDigital} * 72);
+    $clock->cget (-height) == $hght &&
+     $clock->cget (-width) == $wdth and return;
+    $clock->configure (
+	-height => $hght,
+	-width  => $wdth);
     } # resize
 
 sub createDigital ($)
@@ -145,8 +175,8 @@ sub createDigital ($)
     my $clock = shift;
 
     my $data = $clock->privateData;
-    my $off = $data->{useAnalog} * 73;
-    $clock->createText (37, $off + 26,
+    my $off = $data->{useAnalog} * $ana_size;
+    $clock->createText (37, $off + $dig_size,
 	-width  => 65,
 	-font   => $data->{dateFont},
 	-fill   => $data->{dateColor},
@@ -180,15 +210,19 @@ sub createAnalog ($)
 
     my $data = $clock->privateData;
 
+    my $h = ($ana_size + 1) / 2 - 1;
+    my $f = $data->{tickFreq};
     foreach my $tick (0 .. 59) {
-	my $l = $tick % 15 == 0 ? 28 :
-		$tick %  5 == 0 ? 30 : 33;
+	$tick % $f and next;
+	my $l = $tick % 15 == 0 ? $h / 5 :
+		$tick %  5 == 0 ? $h / 8 :
+				  $h / 16;
 	my $a = $tick * .104720;
 	my $x = sin $a;
 	my $y = cos $a;
 	$clock->createLine (
-	    36 + $x * $l, 36 - $y * $l,
-	    36 + $x * 35, 36 - $y * 35,
+	    ($h - $l) * $x + $h + 1, ($h - $l) * $y + $h + 1,
+	     $h       * $x + $h + 1,  $h       * $y + $h + 1,
 	    -tags  => "tick",
 	    -arrow => "none",
 	    -fill  => $data->{tickColor},
@@ -285,12 +319,12 @@ sub config ($@)
 	    my %fmt = (
 		"d"	=> '%d',	# 6
 		"dd"	=> '%02d',	# 06
-		"ddd"	=> '%3s',	# Mon    (NYI)
-		"dddd"	=> '%s',	# Monday (NYI)
+		"ddd"	=> '%3s',	# Mon
+		"dddd"	=> '%s',	# Monday
 		"m"	=> '%d',	# 7
 		"mm"	=> '%02d',	# 07
-		"mmm"	=> '%3s',	# Jul    (NYI)
-		"mmmm"	=> '%s',	# July   (NYI)
+		"mmm"	=> '%3s',	# Jul
+		"mmmm"	=> '%s',	# July
 		"y"	=> '%d',	# 98
 		"yy"	=> '%02d',	# 98
 		"yyy"	=> '%04d',	# 1998
@@ -350,7 +384,34 @@ sub config ($@)
 		    $fmt .= $f;
 		    }
 		}
-	    $data->{fmtt}=eval"sub{my(\$H,\$M,\$S)=\@_;my\$h=\$H%12;my\$A=\$H>11?'PM':'AM';sprintf \"$fmt\"$arg;}";
+	    $data->{fmtt} = eval "sub
+	                          {
+				      my (\$H, \$M, \$S) = \@_;
+				      my \$h = \$H % 12;
+				      my \$A = \$H > 11 ? 'PM' : 'AM';
+				      sprintf \"$fmt\"$arg;
+				      }";
+	    }
+	elsif ($conf_spec eq "tickFreq") {
+	    $data->{tickFreq} < 1 ||
+	    $data->{tickFreq} != int $data->{tickFreq} and
+		$data->{tickFreq} = $old;
+	    unless ($data->{tickFreq} == $old) {
+		$clock->destroyAnalog;
+		$clock->createAnalog;
+		}
+	    }
+	elsif ($conf_spec eq "anaScale") {
+	    $data->{anaScale} <= 0 and	# 0 will be auto some time
+		$data->{anaScale} = $old;
+	    my $new_size = $ana_base * $data->{anaScale} / 100.;
+	    unless ($new_size == $ana_size) {
+		$ana_size = $new_size;
+		$clock->destroyAnalog;
+		$clock->createAnalog;
+		$clock->resize;
+		$clock->after (5, ["run" => $clock]);
+		}
 	    }
 	elsif ($conf_spec eq "useAnalog") {
 	    if    ($old == 1 && $data->{useAnalog} == 0) {
@@ -384,10 +445,11 @@ sub where ($$$)
     my ($clock, $tick, $len) = @_;      # ticks 0 .. 59
     my ($x, $y, $a);
 
+    my $h = ($ana_size + 1) / 2;
     $a = $tick * .104720;
-    $x = $len  * sin $a;
-    $y = $len  * cos $a;
-    (36 - $x / 4, 36 + $y / 4, 36 + $x, 36 - $y);
+    $x = $len  * sin ($a) * $ana_size / 73;
+    $y = $len  * cos ($a) * $ana_size / 73;
+    ($h - $x / 4, $h + $y / 4, $h + $x, $h - $y);
     } # where
 
 sub run ($)
@@ -414,7 +476,7 @@ sub run ($)
 		    -tags  => "hour",
 		    -arrow => "none",
 		    -fill  => $data->{handColor},
-		    -width => 2.6);
+		    -width => $ana_size / 26);
 
 	    $clock->delete ("min");
 	    $clock->createLine (
@@ -422,7 +484,7 @@ sub run ($)
 		    -tags  => "min",
 		    -arrow => "none",
 		    -fill  => $data->{handColor},
-		    -width => 1.5);
+		    -width => $ana_size / 30);
 	    }
 	}
 

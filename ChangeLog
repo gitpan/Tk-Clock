@@ -1,3 +1,10 @@
+*** Release 0.06
+
+    Mon 27 Sep 1999 <h.m.brand@hccnet.nl>
+
+	- Analog clock now scalable (anaScale)
+	- Number of ticks configurable (tickFreq)
+
 *** Release 0.05
 
     Wed 07 Apr 1999 <merijn@hempseed.com>

@@ -4,8 +4,8 @@ DESCRIPTION
     A canvas clock widget with both analog and digital represen-
     tation of both time and date.
 
-    It is reasonable configurable for as far as colors and fonts
-    and the way time and date is displayed.
+    It is highly configurable for as far as colors and fonts and
+    the way time and date is displayed.
 
     The year is displayed in two digits  in the default configu-
     ration, which makes it not Y2K compliant.
@@ -14,13 +14,13 @@ COPYRIGHT
     See Clock.pm
 
 PREREQUISITES
-    perl5 (probably 5.005.04 or better)
+    perl5 (probably 5.004.04 or better)
     Tk (probably 400.xxx or better)
 
-    I'm able to test it on perl versions 5.004.04, 5.005.02 and
-    5.005.03 on  Tk 800.012 and Tk 800.014,  but it doesn't use
-    stange or undocumented features, so it will probably run on
-    older Tk and/or perl versions.
+    I'm able to test it on perl version 5.005.03 with Tk 800.014
+    and Tk 800.015,  but it doesn't use stange or undocumented
+    features, so it will probably run on older Tk and/or perl
+    versions.
 
 BUILDING AND INSTALLATION
     As all CPAN modules:
@@ -45,6 +45,6 @@ CHANGES
     See ChangeLog
 
 PLANNED ENHANCEMENTS
-    Scaling (preferably dynamic).
+    Dynamic scaling.
     Full support for multi-line date- and time-formats with auto-
     resize.
