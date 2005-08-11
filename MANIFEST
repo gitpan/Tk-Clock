@@ -4,3 +4,4 @@ Makefile.PL
 README
 Clock.pm
 t/clock.t
+META.yml                                 Module meta-data (added by MakeMaker)

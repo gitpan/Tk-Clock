@@ -10,17 +10,14 @@ DESCRIPTION
     The year is displayed in two digits  in the default configu-
     ration, which makes it not Y2K compliant.
 
-COPYRIGHT
-    See Clock.pm
-
 PREREQUISITES
     perl5 (probably 5.004.04 or better)
     Tk (probably 400.xxx or better)
 
-    I'm able to test it on perl version 5.005.03 with Tk 800.014
+    I was able to test it on perl version 5.005.03 with Tk 800.014
     and Tk 800.015,  but it doesn't use stange or undocumented
     features, so it will probably run on older Tk and/or perl
-    versions.
+    versions. Latest versions tried with: 5.9.3 + 804.025
 
 BUILDING AND INSTALLATION
     As all CPAN modules:
@@ -48,3 +45,12 @@ PLANNED ENHANCEMENTS
     Dynamic scaling.
     Full support for multi-line date- and time-formats with auto-
     resize.
+
+COPYRIGHT AND LICENSE
+
+    Copyright (C) 1999-2005 H.Merijn Brand
+
+    This library is free software; you can redistribute it and/or modify
+    it under the same terms as Perl itself. 
+
+As always, have the appropriate amount of fun!

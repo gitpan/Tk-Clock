@@ -1,125 +1,124 @@
+#!/pro/bin/perl
+
+use strict;
+use warnings;
+
+use Test::More tests => 19;
+
 BEGIN {
-    $^W = 1;
-    $|  = 1;
-    }
-END {
-    $::loaded || print "not ok 1\n";
+    use_ok ("Tk");
+    use_ok ("Tk::Clock");
     }
 
-my $ntests = 10;
-print "1..$ntests\n";
-use Tk;
-use Tk::Clock;
-$::loaded = 1;
-print "ok 1\n";
-
-my $delay  = 0;
-my $period = 5000;
-
-print "2..$ntests\n";
-my $m = MainWindow->new (-title => "clock");
-my $c = $m->Clock (-background => "Black");
-$c->config (
+my ($delay, $period, $m, $c) = (0, 5000);
+ok ($m = MainWindow->new (-title => "clock"),	"MainWindow");
+ok ($c = $m->Clock (-background => "Black"),	"Clock Widget");
+like ($c->config (
     tickColor => "Orange",
     handColor => "Red",
     secsColor => "Green",
     timeColor => "lightBlue",
     dateColor => "Gold",
     timeFont  => "-misc-fixed-medium-r-normal--13-*-75-75-c-*-iso8859-1",
-    );
-$c->pack;
-print "ok 2\n";
-print "3..$ntests\n";
+    ), qr(^\d+x\d+), "config");
+ok ($c->pack (-expand => 1, -fill => "both"), "pack");
+# Three stupid tests to align the rest
+is ($delay, 0, "Delay is 0");
+like ($period, qr/^\d+$/, "Period is $period");
 
 $delay += $period;
+like ($delay, qr/^\d+$/, "First after $delay");
+
 $c->after ($delay, sub {
     $c->configure (-background => "Blue4");
-    $c->config (
+    ok ($c->config (
 	tickColor  => "Yellow",
 	useAnalog  => 1,
-	useDigital => 0);
-    print "ok 3\n";
-    print "4..$ntests\n";
+	useDigital => 0,
+	), "Blue4   Ad Yellow");
     }); # no_analog
 
 $delay += $period;
 $c->after ($delay, sub {
     $c->configure (-background => "Tan4");
-    $c->config (
+    ok ($c->config (
 	useAnalog  => 0,
-	useDigital => 1);
-    print "ok 4\n";
-    print "5..$ntests\n";
+	useDigital => 1,
+	), "Tan4    aD");
     }); # no_analog
 
 $delay += $period;
 $c->after ($delay, sub {
     $c->configure (-background => "Maroon4");
-    $c->config (
+    ok ($c->config (
 	useAnalog  => 1,
 	useDigital => 1,
 	dateFormat => "m/d/y",
 	timeFormat => "hh:MM A",
-	);
-    print "ok 5\n";
-    print "5..$ntests\n";
+	), "Maroon4 AD m/d/y hh:MM A");
     }); # clock_us
 
 $delay += $period;
 $c->after ($delay, sub {
     $c->configure (-background => "Red4");
-    $c->config (
+    ok ($c->config (
 	useAnalog  => 0,
 	useDigital => 1,
 	dateFormat => "mmm yyy",
 	timeFormat => "HH:MM:SS",
-	);
-    print "ok 6\n";
-    print "6..$ntests\n";
+	), "Red4    aD mmm yyy HH:MM:SS");
     }); # clock_us
 
 $delay += $period;
 $c->after ($delay, sub {
     $c->configure (-background => "Purple4");
-    $c->config (
+    ok ($c->config (
 	useAnalog  => 0,
 	useDigital => 1,
 	dateFormat => "dddd\nd mmm yyy",
 	timeFormat => "",
-	);
-    print "ok 7\n";
-    print "7..$ntests\n";
+	), "Purple4 aD dddd\\nd mmm yyy ''");
     }); # clock_us
 
 $delay += $period;
 $c->after ($delay, sub {
     $c->configure (-background => "Gray75");
-    $c->config (
+    ok ($c->config (
 	useAnalog  => 1,
 	useDigital => 0,
 	anaScale   => 300,
-	);
-    print "ok 8\n";
-    print "8..$ntests\n";
+	), "Gray75  Ad scale 300");
     }); # clock_us
 
 $delay += $period;
 $c->after ($delay, sub {
-    $c->config (
+    ok ($c->config (
 	useAnalog  => 1,
 	useDigital => 0,
 	anaScale   => 67,
 	tickFreq   => 5,
-	);
-    print "ok 9\n";
-    print "9..$ntests\n";
+	), "        Ad scale  67 tickFreq 5");
+    }); # clock_us
+
+$delay += $period;
+$c->after ($delay, sub {
+    ok ($c->config (
+	useAnalog  => 1,
+	useDigital => 1,
+	anaScale   => 100,
+	tickFreq   => 5,
+	dateFormat => "ww dd-mm",
+	timeFormat => "dd HH:SS",
+	), "        AD scale 100 tickFreq 5 ww dd-mm dd HH:SS");
     }); # clock_us
 
 $delay += $period;
 $c->after ($delay, sub {
     $c->destroy;
+    ok (!Exists ($c), "Destroy Clock");
     $m->destroy;
-    print "ok $ntests\n";
+    ok (!Exists ($m), "Destroy Main");
+    exit;
     }); # stop_clock
 
 MainLoop;

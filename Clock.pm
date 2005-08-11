@@ -1,3 +1,9 @@
+#!/pro/bin/perl
+
+package Tk::Clock;
+
+our $VERSION = "0.10";
+
 =head1 NAME
 
 Tk::Clock - Clock widget with analog and digital display
@@ -30,12 +36,13 @@ Create a clock canvas with both an analog- and a digital display. Either
 can be disabled by setting useAnalog or useDigital to 0 resp.
 
 Legal dateFormat characters are d and dd for date, ddd and dddd for weekday,
-m, mm, mmm and mmmm for month, y and yy for year and
+m, mm, mmm and mmmm for month, y and yy for year, w and ww for weeknumber and
 any separators :, -, / or space.
 
 Legal timeFormat characters are H and HH for hour, h and hh for AM/PM hour,
-M and MM for minutes, S and SS for seconds, A for AM/PM indicator and any
-separators :, -, . or space.
+M and MM for minutes, S and SS for seconds, A for AM/PM indicator, d and dd
+for day-of-the week in two or three characters resp. and any separators :,
+-, . or space.
 
 Meaningful values for tickFreq are 1, 5 and 15 showing all ticks, tick
 every 5 minutes or the four main ticks only, though any positive integer
@@ -44,6 +51,11 @@ will do (put a tick on any tickFreq minute).
 The analog clock can be enlaged or reduced using anaScale for which the
 default of 100% is about 72x72 pixels. Future enhancement will include
 auto sizing for anaScale 0.
+
+When using C<pack> for your geometry management, be sure to pass
+C<-expand =&gt; 1, -fill =&gt; "both"> if you plan to resize with
+C<anaScale> or enable/disable either analog or digital after the
+clock was displayed.
 
 =head1 BUGS
 
@@ -59,31 +71,40 @@ There's no check if either format will fit in the given space.
 * Using POSIX' strftime () for dateFormat. Current implementation
   would probably make this very slow.
 * Auto sizing to fit (analog) clock in given space.
+  that is the reverse of what happens now.
 
 =head1 AUTHOR
 
-H.Merijn Brand <merijn@hempseed.com>
+H.Merijn Brand <h.m.brand@xs4all.nl>
 
 Thanks to Larry Wall for inventing perl.
 Thanks to Nick Ing-Simmons for providing perlTk.
 Thanks to Achim Bohnet for introducing me to OO (and converting
     the basics of my clock.pl to Tk::Clock.pm).
 Thanks to Sriram Srinivasan for understanding OO though his Panther book.
+Thanks to all CPAN providers for support of different modules to learn from.
+Thanks to all who have given me feedback.
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 1999-2005 H.Merijn Brand
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 
 
 =cut
 
-package Tk::Clock;
+use strict;
+use warnings;
 
 use Carp;
-use strict;
-use vars qw/$VERSION @ISA/;
 
 use Tk::Widget;
 use Tk::Derived;
 use Tk::Canvas;
 
+use vars qw( @ISA );
 @ISA = qw/Tk::Derived Tk::Canvas/;
-$VERSION = "0.06";
 
 Construct Tk::Widget "Clock";
 
@@ -160,14 +181,26 @@ sub resize ($)
 {
     my $clock = shift;
 
+    use integer;
     my $data = $clock->privateData;
-    my $hght = $data->{useAnalog}  * $ana_size + $data->{useDigital} * $dig_size + 1;
+    my $hght = $data->{useAnalog}  * $ana_size +
+	       $data->{useDigital} * $dig_size + 1;
     my $wdth = max ($data->{useAnalog} * $ana_size, $data->{useDigital} * 72);
+    my $dim  = "${wdth}x${hght}";
     $clock->cget (-height) == $hght &&
-     $clock->cget (-width) == $wdth and return;
-    $clock->configure (
+     $clock->cget (-width) == $wdth and return $dim;
+    if ($clock->parent->isa ("MainWindow")) {
+	my $geo = $clock->parent->geometry;
+	my @geo = split m/\D/ => $geo;
+	if ($geo[0] > 5 && $geo[1] > 5) {
+	    $geo =~ s/^\d+x\d+//;
+	    $clock->parent->geometry ("$dim$geo");
+	    }
+	}
+    $clock->parent->configure (
 	-height => $hght,
 	-width  => $wdth);
+    $dim;
     } # resize
 
 sub createDigital ($)
@@ -193,7 +226,7 @@ sub createDigital ($)
     $data->{Clock_h} = -1;
 #   $data->{Clock_m} = -1;
     $data->{Clock_s} = -1;
-    $clock->resize ($data);
+    $clock->resize;
     } # createDigital
 
 sub destroyDigital ($)
@@ -231,7 +264,7 @@ sub createAnalog ($)
     $data->{Clock_h} = -1;
     $data->{Clock_m} = -1;
     $data->{Clock_s} = -1;
-    $clock->resize ($data);
+    $clock->resize;
     } # createAnalog
 
 sub destroyAnalog ($)
@@ -265,8 +298,9 @@ sub Populate
         -takefocus          => [ qw(SELF takefocus          Takefocus          0     ) ],
         );
 
-    $data->{useDigital} and $clock->createDigital;
     $data->{useAnalog}  and $clock->createAnalog;
+    $data->{useDigital} and $clock->createDigital;
+    $clock->resize;
 	
     $clock->repeat (995, ["run" => $clock]);
     } # Populate
@@ -328,10 +362,12 @@ sub config ($@)
 		"y"	=> '%d',	# 98
 		"yy"	=> '%02d',	# 98
 		"yyy"	=> '%04d',	# 1998
+		"w"	=> '%d',	# 28 (week)
+		"ww"	=> '%02d',	# 28
 		);
 	    my $fmt = $data->{dateFormat};
-	    $fmt =~ m(^[-dmy/: \n]*$) or croak "Bad dateFormat";
-	    my @fmt = split m/([^dmy]+)/, $fmt;
+	    $fmt =~ m(^[-dmyw/: \n]*$) or croak "Bad dateFormat";
+	    my @fmt = split m/([^dmyw]+)/, $fmt;
 	    my $args = "";
 	    $fmt = "";
 	    foreach my $f (@fmt) {
@@ -343,7 +379,7 @@ sub config ($@)
 			}
 		    elsif ($f =~ m/^ddd+/) {
 			my $l = length ($f) - 3;
-			$args .= ", Tk::Clock::wday (\$w, $l)";
+			$args .= ", Tk::Clock::wday (\$wd, $l)";
 			}
 		    else {
 			$args .= ', $' . substr ($f, 0, 1);
@@ -356,7 +392,13 @@ sub config ($@)
 		    }
 		}
 	    $data->{Clock_h} = -1;	# force update;
-	    $data->{fmtd}=eval"sub{my(\$d,\$m,\$y,\$w)=\@_;sprintf qq!$fmt!$args;}";
+	    $data->{fmtd} = eval "
+		sub
+		{
+		    my (\$d, \$m, \$y, \$wd, \$w) = \@_;
+		    \$w = \$w / 7 + 1;
+		    sprintf qq!$fmt!$args;
+		    }";
 	    }
 	elsif ($conf_spec eq "timeFormat") {
 	    my %fmt = (
@@ -369,14 +411,20 @@ sub config ($@)
 		"S"	=> '%d',	# 45
 		"SS"	=> '%02d',	# 45
 		"A"	=> '%s',	# PM
+		"dd"	=> '%.2s',	# Mo
+		"ddd"	=> '%.3s',	# Mon
 		);
 	    my $fmt = $data->{timeFormat};
-	    $fmt =~ m(^[-AhHMS\.: ]*$) or croak "Bad timeFormat";
-	    my @fmt = split m/([^AhHMS]+)/, $fmt;
+	    $fmt =~ m(^[-AhHMSd\.: ]*$) or croak "Bad timeFormat";
+	    my @fmt = split m/([^AhHMSd]+)/, $fmt;
 	    my $arg = "";
 	    $fmt = "";
 	    foreach my $f (@fmt) {
-		if (defined $fmt{$f}) {
+		if ($f =~ m/^dd?$/) {
+		    $fmt .= $fmt{$f};
+		    $arg .= ", Tk::Clock::wday (\$d, 0)";
+		    }
+		elsif (defined $fmt{$f}) {
 		    $fmt .= $fmt{$f};
 		    $arg .= ', $' . substr ($f, 0, 1);
 		    }
@@ -384,13 +432,14 @@ sub config ($@)
 		    $fmt .= $f;
 		    }
 		}
-	    $data->{fmtt} = eval "sub
-	                          {
-				      my (\$H, \$M, \$S) = \@_;
-				      my \$h = \$H % 12;
-				      my \$A = \$H > 11 ? 'PM' : 'AM';
-				      sprintf \"$fmt\"$arg;
-				      }";
+	    $data->{fmtt} = eval "
+		sub
+		{
+		    my (\$H, \$M, \$S, \$d) = \@_;
+		    my \$h = \$H % 12;
+		    my \$A = \$H > 11 ? 'PM' : 'AM';
+		    sprintf qq!$fmt!$arg;
+		    }";
 	    }
 	elsif ($conf_spec eq "tickFreq") {
 	    $data->{tickFreq} < 1 ||
@@ -404,12 +453,17 @@ sub config ($@)
 	elsif ($conf_spec eq "anaScale") {
 	    $data->{anaScale} <= 0 and	# 0 will be auto some time
 		$data->{anaScale} = $old;
-	    my $new_size = $ana_base * $data->{anaScale} / 100.;
+	    my $new_size = int ($ana_base * $data->{anaScale} / 100.);
 	    unless ($new_size == $ana_size) {
 		$ana_size = $new_size;
 		$clock->destroyAnalog;
 		$clock->createAnalog;
-		$clock->resize;
+		if (exists $conf->{anaScale} && $data->{useDigital}) {
+		    # Otherwise the digital either overlaps the analog
+		    # or there is a gap
+		    $clock->destroyDigital;
+		    $clock->createDigital;
+		    }
 		$clock->after (5, ["run" => $clock]);
 		}
 	    }
@@ -424,7 +478,6 @@ sub config ($@)
 		$clock->createAnalog;
 		$data->{useDigital} and $clock->createDigital;
 		}
-	    $clock->resize;
 	    $clock->after (5, ["run" => $clock]);
 	    }
 	elsif ($conf_spec eq "useDigital") {
@@ -434,10 +487,10 @@ sub config ($@)
 	    elsif ($old == 0 && $data->{useDigital} == 1) {
 		$clock->createDigital;
 		}
-	    $clock->resize;
 	    $clock->after (5, ["run" => $clock]);
 	    }
 	}
+    $clock->resize;
     } # config
 
 sub where ($$$)
@@ -464,7 +517,7 @@ sub run ($)
 	$data->{Clock_h} = $t[2];
 	$data->{useDigital} and
 	    $clock->itemconfigure ("date",
-		-text => &{$data->{fmtd}} (@t[3,4,5,6]));
+		-text => &{$data->{fmtd}} (@t[3,4,5,6,7]));
 	}
 
     unless ($t[1] == $data->{Clock_m}) {
@@ -501,7 +554,7 @@ sub run ($)
 	    }
 	$data->{useDigital} and
 	    $clock->itemconfigure ("time",
-		-text => &{$data->{fmtt}} (@t[2,1,0]));
+		-text => &{$data->{fmtt}} (@t[2,1,0,6]));
         } 
     } # run
 

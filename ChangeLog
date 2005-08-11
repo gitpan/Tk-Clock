@@ -1,3 +1,22 @@
+*** Release 0.10
+
+    Thu 11 Aug 2005 <h.m.brand@xs4all.nl>
+
+	- Solved digital clock misplacement when anaScale passed (Abeltje)
+	- Improved resizing
+	- Set geometry of parent if MainWindow
+	- Changed README and updated Copyright
+	- Added a warning for resizing and pack
+	- Changed the tests to use Test::More
+	- config now returns the widgets new geometry
+
+*** Release 0.07
+
+    Mon 03 Apr 2000 <h.m.brand@hccnet.nl>
+
+	- Added 'w' and 'ww' for weeknumbers in dateFormat
+	- Added 'd' and 'dd' for day of the week in timeFormat (for Henry)
+
 *** Release 0.06
 
     Mon 27 Sep 1999 <h.m.brand@hccnet.nl>
