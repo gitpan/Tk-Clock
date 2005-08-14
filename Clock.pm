@@ -2,7 +2,7 @@
 
 package Tk::Clock;
 
-our $VERSION = "0.10";
+our $VERSION = "0.11";
 
 =head1 NAME
 
@@ -197,7 +197,7 @@ sub resize ($)
 	    $clock->parent->geometry ("$dim$geo");
 	    }
 	}
-    $clock->parent->configure (
+    $clock->configure (
 	-height => $hght,
 	-width  => $wdth);
     $dim;
