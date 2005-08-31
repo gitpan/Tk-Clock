@@ -20,7 +20,7 @@ like ($c->config (
     timeColor => "lightBlue",
     dateColor => "Gold",
     timeFont  => "-misc-fixed-medium-r-normal--13-*-75-75-c-*-iso8859-1",
-    ), qr(^\d+x\d+), "config");
+    ), qr(^Tk::Clock=HASH), "config");
 ok ($c->pack (-expand => 1, -fill => "both"), "pack");
 # Three stupid tests to align the rest
 is ($delay, 0, "Delay is 0");

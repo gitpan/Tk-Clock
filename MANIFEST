@@ -3,5 +3,7 @@ MANIFEST
 Makefile.PL
 README
 Clock.pm
+examples/simple.pl
+examples/24hour.pl
 t/clock.t
 META.yml                                 Module meta-data (added by MakeMaker)

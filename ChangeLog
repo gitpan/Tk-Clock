@@ -1,3 +1,10 @@
+*** Release 0.12
+
+    Wed 31 Aug 2005 <h.m.brand@xs4all.nl>
+
+	- 24 Hour clock for Abe
+	- config () now returns the widget, so it's stackable
+
 *** Release 0.11
 
     Sun 14 Aug 2005 <h.m.brand@xs4all.nl>

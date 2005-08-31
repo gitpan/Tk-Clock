@@ -2,7 +2,7 @@
 
 package Tk::Clock;
 
-our $VERSION = "0.11";
+our $VERSION = "0.12";
 
 =head1 NAME
 
@@ -19,6 +19,7 @@ $clock->config (	# These reflect the defaults
     useDigital	=> 1,
     useAnalog	=> 1,
     anaScale	=> 100,
+    ana24hour	=> 0,
     handColor	=> "Green4",
     secsColor	=> "Green2",
     tickColor	=> "Yellow4",
@@ -49,8 +50,8 @@ every 5 minutes or the four main ticks only, though any positive integer
 will do (put a tick on any tickFreq minute).
 
 The analog clock can be enlaged or reduced using anaScale for which the
-default of 100% is about 72x72 pixels. Future enhancement will include
-auto sizing for anaScale 0.
+default of 100% is about 72x72 pixels. Setting anaScale to 0, will try to
+resize the widget to it's container automatically.
 
 When using C<pack> for your geometry management, be sure to pass
 C<-expand =&gt; 1, -fill =&gt; "both"> if you plan to resize with
@@ -109,8 +110,6 @@ use vars qw( @ISA );
 Construct Tk::Widget "Clock";
 
 my $ana_base = 73;	# Size base for 100%
-my $ana_size = 73;	# Default size
-my $dig_size = 26;
 
 my %def_config = (
     handColor	=> "Green4",
@@ -129,6 +128,7 @@ my %def_config = (
     useAnalog	=> 1,
     anaScale	=> 100,
     tickFreq	=> 1,
+    ana24hour	=> 0,
 
     fmtd	=> sub {
 	my ($d, $m, $y, $w) = @_;
@@ -138,6 +138,9 @@ my %def_config = (
 	my ($h, $m, $s) = @_;
 	sprintf "%02d.%02d:%02d", $h, $m, $s;
 	},
+
+    _anaSize	=> $ana_base,	# Default size
+    _digSize	=> 26,
     );
 
 sub month ($$)
@@ -167,15 +170,15 @@ sub wday ($$)
      [ "Sat", "Saturday"	]]->[$_[0]][$_[1]];
     } # wday
 
+sub min ($$)
+{
+    $_[0] <= $_[1] ? $_[0] : $_[1];
+    } # min
+
 sub max ($$)
 {
     $_[0] >= $_[1] ? $_[0] : $_[1];
     } # max
-
-sub auto_size ()
-{
-    $ana_size > 0 and return $ana_size;
-    } # auto_size
 
 sub resize ($)
 {
@@ -183,9 +186,10 @@ sub resize ($)
 
     use integer;
     my $data = $clock->privateData;
-    my $hght = $data->{useAnalog}  * $ana_size +
-	       $data->{useDigital} * $dig_size + 1;
-    my $wdth = max ($data->{useAnalog} * $ana_size, $data->{useDigital} * 72);
+    my $hght = $data->{useAnalog}  * $data->{_anaSize} +
+	       $data->{useDigital} * $data->{_digSize} + 1;
+    my $wdth = max ($data->{useAnalog}  * $data->{_anaSize},
+		    $data->{useDigital} * 72);
     my $dim  = "${wdth}x${hght}";
     $clock->cget (-height) == $hght &&
      $clock->cget (-width) == $wdth and return $dim;
@@ -203,13 +207,39 @@ sub resize ($)
     $dim;
     } # resize
 
+# Callback when auto-resize is called
+sub _resize_auto ($)
+{
+    my $clock = shift;
+    my $data  = $clock->privateData;
+
+    $data->{useAnalog} && $data->{anaScale} == 0 or return;
+
+    my $geo   = $clock->geometry;
+    my $owdth = $data->{useAnalog} * $data->{_anaSize};
+    my ($gw, $gh) = split m/\D/, $geo;
+    my $nwdth = min ($gw, $gh - 1 - $data->{_digSize});
+    abs ($nwdth - $owdth) > 5 && $nwdth >= 10 or return;
+
+    $data->{_anaSize} = $nwdth - 2;
+    $clock->destroyAnalog;
+    $clock->createAnalog;
+    if ($data->{useDigital}) {
+	# Otherwise the digital either overlaps the analog
+	# or there is a gap
+	$clock->destroyDigital;
+	$clock->createDigital;
+	}
+    $clock->resize;
+    } # _resize_auto
+
 sub createDigital ($)
 {
     my $clock = shift;
 
     my $data = $clock->privateData;
-    my $off = $data->{useAnalog} * $ana_size;
-    $clock->createText (37, $off + $dig_size,
+    my $off = $data->{useAnalog} * $data->{_anaSize};
+    $clock->createText (37, $off + $data->{_digSize},
 	-width  => 65,
 	-font   => $data->{dateFont},
 	-fill   => $data->{dateColor},
@@ -243,14 +273,14 @@ sub createAnalog ($)
 
     my $data = $clock->privateData;
 
-    my $h = ($ana_size + 1) / 2 - 1;
-    my $f = $data->{tickFreq};
-    foreach my $tick (0 .. 59) {
-	$tick % $f and next;
-	my $l = $tick % 15 == 0 ? $h / 5 :
-		$tick %  5 == 0 ? $h / 8 :
-				  $h / 16;
-	my $a = $tick * .104720;
+    my $h = ($data->{_anaSize} + 1) / 2 - 1;
+    my $f = $data->{tickFreq} * 2;
+    foreach my $dtick (0 .. 119) {
+	$dtick % $f and next;
+	my $l = $dtick % 30 == 0 ? $h / 5 :
+		$dtick % 10 == 0 ? $h / 8 :
+				   $h / 16;
+	my $a = ($dtick / 2) * .104720;
 	my $x = sin $a;
 	my $y = cos $a;
 	$clock->createLine (
@@ -442,29 +472,34 @@ sub config ($@)
 		    }";
 	    }
 	elsif ($conf_spec eq "tickFreq") {
-	    $data->{tickFreq} < 1 ||
-	    $data->{tickFreq} != int $data->{tickFreq} and
-		$data->{tickFreq} = $old;
+#	    $data->{tickFreq} < 1 ||
+#	    $data->{tickFreq} != int $data->{tickFreq} and
+#		$data->{tickFreq} = $old;
 	    unless ($data->{tickFreq} == $old) {
 		$clock->destroyAnalog;
 		$clock->createAnalog;
 		}
 	    }
 	elsif ($conf_spec eq "anaScale") {
-	    $data->{anaScale} <= 0 and	# 0 will be auto some time
-		$data->{anaScale} = $old;
-	    my $new_size = int ($ana_base * $data->{anaScale} / 100.);
-	    unless ($new_size == $ana_size) {
-		$ana_size = $new_size;
-		$clock->destroyAnalog;
-		$clock->createAnalog;
-		if (exists $conf->{anaScale} && $data->{useDigital}) {
-		    # Otherwise the digital either overlaps the analog
-		    # or there is a gap
-		    $clock->destroyDigital;
-		    $clock->createDigital;
+	    if ($data->{anaScale} == 0) {	# 0 will be auto some time
+		$clock->Tk::bind         ("Tk::Clock","<<ResizeRequest>>", \&_resize_auto);
+		$clock->parent->Tk::bind ("<<ResizeRequest>>", \&_resize_auto);
+		$clock->_resize_auto;
+		}
+	    else {
+		my $new_size = int ($ana_base * $data->{anaScale} / 100.);
+		unless ($new_size == $data->{_anaSize}) {
+		    $data->{_anaSize} = $new_size;
+		    $clock->destroyAnalog;
+		    $clock->createAnalog;
+		    if (exists $conf->{anaScale} && $data->{useDigital}) {
+			# Otherwise the digital either overlaps the analog
+			# or there is a gap
+			$clock->destroyDigital;
+			$clock->createDigital;
+			}
+		    $clock->after (5, ["run" => $clock]);
 		    }
-		$clock->after (5, ["run" => $clock]);
 		}
 	    }
 	elsif ($conf_spec eq "useAnalog") {
@@ -491,17 +526,18 @@ sub config ($@)
 	    }
 	}
     $clock->resize;
+    $clock;
     } # config
 
-sub where ($$$)
+sub where ($$$$)
 {
-    my ($clock, $tick, $len) = @_;      # ticks 0 .. 59
+    my ($clock, $tick, $len, $anaSize) = @_;      # ticks 0 .. 59
     my ($x, $y, $a);
 
-    my $h = ($ana_size + 1) / 2;
+    my $h = ($anaSize + 1) / 2;
     $a = $tick * .104720;
-    $x = $len  * sin ($a) * $ana_size / 73;
-    $y = $len  * cos ($a) * $ana_size / 73;
+    $x = $len  * sin ($a) * $anaSize / 73;
+    $y = $len  * cos ($a) * $anaSize / 73;
     ($h - $x / 4, $h + $y / 4, $h + $x, $h - $y);
     } # where
 
@@ -524,20 +560,21 @@ sub run ($)
         $data->{Clock_m} = $t[1];
 	if ($data->{useAnalog}) {
 	    $clock->delete ("hour");
+	    my ($h24, $m24) = $data->{ana24hour} ? (24, 2.5)  : (12, 5);
 	    $clock->createLine (
-		$clock->where (($data->{Clock_h} % 12) * 5 + $t[1] / 12, 22),
+		$clock->where (($data->{Clock_h} % $h24) * $m24 + $t[1] / $h24, 22, $data->{_anaSize}),
 		    -tags  => "hour",
 		    -arrow => "none",
 		    -fill  => $data->{handColor},
-		    -width => $ana_size / 26);
+		    -width => $data->{_anaSize} / 26);
 
 	    $clock->delete ("min");
 	    $clock->createLine (
-		$clock->where ($data->{Clock_m}, 30),
+		$clock->where ($data->{Clock_m}, 30, $data->{_anaSize}),
 		    -tags  => "min",
 		    -arrow => "none",
 		    -fill  => $data->{handColor},
-		    -width => $ana_size / 30);
+		    -width => $data->{_anaSize} / 30);
 	    }
 	}
 
@@ -546,7 +583,7 @@ sub run ($)
         if ($data->{useAnalog}) {
 	    $clock->delete ("sec");
 	    $clock->createLine (
-		$clock->where ($data->{Clock_s}, 34),
+		$clock->where ($data->{Clock_s}, 34, $data->{_anaSize}),
 		    -tags  => "sec",
 		    -arrow => "none",
 		    -fill  => $data->{secsColor},
@@ -556,6 +593,7 @@ sub run ($)
 	    $clock->itemconfigure ("time",
 		-text => &{$data->{fmtt}} (@t[2,1,0,6]));
         } 
+    $data->{anaScale} == 0 and $clock->_resize_auto;
     } # run
 
 1;
