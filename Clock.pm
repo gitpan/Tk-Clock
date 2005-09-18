@@ -2,7 +2,7 @@
 
 package Tk::Clock;
 
-our $VERSION = "0.12";
+our $VERSION = "0.15";
 
 =head1 NAME
 
