@@ -2,7 +2,7 @@
 
 package Tk::Clock;
 
-our $VERSION = "0.15";
+our $VERSION = "0.16";
 
 =head1 NAME
 
@@ -26,10 +26,12 @@ $clock->config (	# These reflect the defaults
     tickFreq	=> 1,
     timeFont	=> "fixed",
     timeColor	=> "Red4",
-    timeFormat	=> "HH.MM:SS",
+    timeFormat	=> "HH:MM:SS",
     dateFont	=> "fixed",
     dateColor	=> "Blue4",
-    dateFormat	=> "dd-mm-yy");
+    dateFormat	=> "dd-mm-yy",
+    digiAlign   => "center",
+    );
 
 =head1 DESCRIPTION
 
@@ -52,6 +54,9 @@ will do (put a tick on any tickFreq minute).
 The analog clock can be enlaged or reduced using anaScale for which the
 default of 100% is about 72x72 pixels. Setting anaScale to 0, will try to
 resize the widget to it's container automatically.
+
+For digiAlign, "left", "center", and "right" are the only supported values.
+Any other value will be interpreted as the default "center".
 
 When using C<pack> for your geometry management, be sure to pass
 C<-expand =&gt; 1, -fill =&gt; "both"> if you plan to resize with
@@ -88,7 +93,7 @@ Thanks to all who have given me feedback.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 1999-2005 H.Merijn Brand
+Copyright (C) 1999-2006 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself. 
@@ -118,7 +123,7 @@ my %def_config = (
 
     timeFont	=> "fixed",
     timeColor	=> "Red4",
-    timeFormat	=> "HH.MM:SS",
+    timeFormat	=> "HH:MM:SS",
 
     dateFont	=> "fixed",
     dateColor	=> "Blue4",
@@ -130,6 +135,8 @@ my %def_config = (
     tickFreq	=> 1,
     ana24hour	=> 0,
 
+    digiAlign	=> "center",
+
     fmtd	=> sub {
 	my ($d, $m, $y, $w) = @_;
 	sprintf "%02d-%02d-%02d", $d, $m + 1, $y % 100;
@@ -139,8 +146,8 @@ my %def_config = (
 	sprintf "%02d.%02d:%02d", $h, $m, $s;
 	},
 
-    _anaSize	=> $ana_base,	# Default size
-    _digSize	=> 26,
+    _anaSize	=> $ana_base,	# Default size (height & width)
+    _digSize	=> 26,		# Height
     );
 
 sub month ($$)
@@ -238,21 +245,30 @@ sub createDigital ($)
     my $clock = shift;
 
     my $data = $clock->privateData;
-    my $off = $data->{useAnalog} * $data->{_anaSize};
-    $clock->createText (37, $off + $data->{_digSize},
-	-width  => 65,
+    my $wdth = max ($data->{useAnalog}  * $data->{_anaSize},
+		    $data->{useDigital} * 72);
+    my ($pad, $anchor) = (5, "s");
+    my ($x, $y) = ($wdth / 2, $data->{useAnalog} * $data->{_anaSize});
+    if    ($data->{digiAlign} eq "left") {
+	($anchor, $x) = ("sw", $pad);
+	}
+    elsif ($data->{digiAlign} eq "right") {
+	($anchor, $x) = ("se", $wdth - $pad);
+	}
+    $clock->createText ($x, $y + $data->{_digSize},
+	-anchor	=> $anchor,
+	-width  => ($wdth - 2 * $pad),
 	-font   => $data->{dateFont},
 	-fill   => $data->{dateColor},
 	-text   => $data->{dateFormat},
-	-tags   => "date",
-	-anchor => "s");
-    $clock->createText (37, $off + 13,
-	-width  => 65,
+	-tags   => "date");
+    $clock->createText ($x, $y + 13,
+	-anchor	=> $anchor,
+	-width  => ($wdth - 2 * $pad),
 	-font   => $data->{timeFont},
 	-fill   => $data->{timeColor},
 	-text   => $data->{timeFormat},
-	-tags   => "time",
-	-anchor => "s");
+	-tags   => "time");
     $data->{Clock_h} = -1;
 #   $data->{Clock_m} = -1;
     $data->{Clock_s} = -1;
@@ -266,6 +282,18 @@ sub destroyDigital ($)
     $clock->delete ("date");
     $clock->delete ("time");
     } # destroyDigital
+
+sub where ($$$$)
+{
+    my ($clock, $tick, $len, $anaSize) = @_;      # ticks 0 .. 59
+    my ($x, $y, $a);
+
+    my $h = ($anaSize + 1) / 2;
+    $a = $tick * .104720;
+    $x = $len  * sin ($a) * $anaSize / 73;
+    $y = $len  * cos ($a) * $anaSize / 73;
+    ($h - $x / 4, $h + $y / 4, $h + $x, $h - $y);
+    } # where
 
 sub createAnalog ($)
 {
@@ -294,6 +322,26 @@ sub createAnalog ($)
     $data->{Clock_h} = -1;
     $data->{Clock_m} = -1;
     $data->{Clock_s} = -1;
+
+    $clock->createLine (
+	$clock->where (0, 22, $data->{_anaSize}),
+	    -tags  => "hour",
+	    -arrow => "none",
+	    -fill  => $data->{handColor},
+	    -width => $data->{_anaSize} / 26);
+    $clock->createLine (
+	$clock->where (0, 30, $data->{_anaSize}),
+	    -tags  => "min",
+	    -arrow => "none",
+	    -fill  => $data->{handColor},
+	    -width => $data->{_anaSize} / 30);
+    $clock->createLine (
+	$clock->where (0, 34, $data->{_anaSize}),
+	    -tags  => "sec",
+	    -arrow => "none",
+	    -fill  => $data->{secsColor},
+	    -width => 0.8);
+
     $clock->resize;
     } # createAnalog
 
@@ -524,22 +572,17 @@ sub config ($@)
 		}
 	    $clock->after (5, ["run" => $clock]);
 	    }
+	elsif ($conf_spec eq "digiAlign") {
+	    if ($data->{useDigital} && $old ne $data->{digiAlign}) {
+		$clock->destroyDigital;
+		$clock->createDigital;
+		$clock->after (5, ["run" => $clock]);
+		}
+	    }
 	}
     $clock->resize;
     $clock;
     } # config
-
-sub where ($$$$)
-{
-    my ($clock, $tick, $len, $anaSize) = @_;      # ticks 0 .. 59
-    my ($x, $y, $a);
-
-    my $h = ($anaSize + 1) / 2;
-    $a = $tick * .104720;
-    $x = $len  * sin ($a) * $anaSize / 73;
-    $y = $len  * cos ($a) * $anaSize / 73;
-    ($h - $x / 4, $h + $y / 4, $h + $x, $h - $y);
-    } # where
 
 sub run ($)
 {
@@ -559,35 +602,20 @@ sub run ($)
     unless ($t[1] == $data->{Clock_m}) {
         $data->{Clock_m} = $t[1];
 	if ($data->{useAnalog}) {
-	    $clock->delete ("hour");
 	    my ($h24, $m24) = $data->{ana24hour} ? (24, 2.5)  : (12, 5);
-	    $clock->createLine (
-		$clock->where (($data->{Clock_h} % $h24) * $m24 + $t[1] / $h24, 22, $data->{_anaSize}),
-		    -tags  => "hour",
-		    -arrow => "none",
-		    -fill  => $data->{handColor},
-		    -width => $data->{_anaSize} / 26);
+	    $clock->coords ("hour",
+		$clock->where (($data->{Clock_h} % $h24) * $m24 + $t[1] / $h24, 22, $data->{_anaSize}));
 
-	    $clock->delete ("min");
-	    $clock->createLine (
-		$clock->where ($data->{Clock_m}, 30, $data->{_anaSize}),
-		    -tags  => "min",
-		    -arrow => "none",
-		    -fill  => $data->{handColor},
-		    -width => $data->{_anaSize} / 30);
+	    $clock->coords ("min",
+		$clock->where ($data->{Clock_m}, 30, $data->{_anaSize}));
 	    }
 	}
 
     unless ($t[0] == $data->{Clock_s}) {
         $data->{Clock_s} = $t[0];
         if ($data->{useAnalog}) {
-	    $clock->delete ("sec");
-	    $clock->createLine (
-		$clock->where ($data->{Clock_s}, 34, $data->{_anaSize}),
-		    -tags  => "sec",
-		    -arrow => "none",
-		    -fill  => $data->{secsColor},
-		    -width => 0.8);
+	    $clock->coords ("sec",
+		$clock->where ($data->{Clock_s}, 34, $data->{_anaSize}));
 	    }
 	$data->{useDigital} and
 	    $clock->itemconfigure ("time",

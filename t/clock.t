@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 19;
+use Test::More tests => 21;
 
 BEGIN {
     use_ok ("Tk");
@@ -36,7 +36,7 @@ $c->after ($delay, sub {
 	useAnalog  => 1,
 	useDigital => 0,
 	), "Blue4   Ad Yellow");
-    }); # no_analog
+    });
 
 $delay += $period;
 $c->after ($delay, sub {
@@ -45,7 +45,7 @@ $c->after ($delay, sub {
 	useAnalog  => 0,
 	useDigital => 1,
 	), "Tan4    aD");
-    }); # no_analog
+    });
 
 $delay += $period;
 $c->after ($delay, sub {
@@ -56,7 +56,7 @@ $c->after ($delay, sub {
 	dateFormat => "m/d/y",
 	timeFormat => "hh:MM A",
 	), "Maroon4 AD m/d/y hh:MM A");
-    }); # clock_us
+    });
 
 $delay += $period;
 $c->after ($delay, sub {
@@ -67,7 +67,27 @@ $c->after ($delay, sub {
 	dateFormat => "mmm yyy",
 	timeFormat => "HH:MM:SS",
 	), "Red4    aD mmm yyy HH:MM:SS");
-    }); # clock_us
+    });
+
+$delay += $period;
+$c->after ($delay, sub {
+    $c->configure (-background => "Gray10");
+    ok ($c->config (
+	useAnalog  => 1,
+	useDigital => 1,
+	digiAlign  => "right",
+	), "Gray10  right digital");
+    });
+
+$delay += $period;
+$c->after ($delay, sub {
+    $c->configure (-background => "Gray30");
+    ok ($c->config (
+	useAnalog  => 1,
+	useDigital => 1,
+	digiAlign  => "left",
+	), "Gray30  left digital");
+    });
 
 $delay += $period;
 $c->after ($delay, sub {
@@ -78,7 +98,7 @@ $c->after ($delay, sub {
 	dateFormat => "dddd\nd mmm yyy",
 	timeFormat => "",
 	), "Purple4 aD dddd\\nd mmm yyy ''");
-    }); # clock_us
+    });
 
 $delay += $period;
 $c->after ($delay, sub {
@@ -88,7 +108,7 @@ $c->after ($delay, sub {
 	useDigital => 0,
 	anaScale   => 300,
 	), "Gray75  Ad scale 300");
-    }); # clock_us
+    });
 
 $delay += $period;
 $c->after ($delay, sub {
@@ -98,7 +118,7 @@ $c->after ($delay, sub {
 	anaScale   => 67,
 	tickFreq   => 5,
 	), "        Ad scale  67 tickFreq 5");
-    }); # clock_us
+    });
 
 $delay += $period;
 $c->after ($delay, sub {
@@ -110,7 +130,7 @@ $c->after ($delay, sub {
 	dateFormat => "ww dd-mm",
 	timeFormat => "dd HH:SS",
 	), "        AD scale 100 tickFreq 5 ww dd-mm dd HH:SS");
-    }); # clock_us
+    });
 
 $delay += $period;
 $c->after ($delay, sub {
@@ -119,6 +139,6 @@ $c->after ($delay, sub {
     $m->destroy;
     ok (!Exists ($m), "Destroy Main");
     exit;
-    }); # stop_clock
+    });
 
 MainLoop;

@@ -1,3 +1,12 @@
+*** Release 0.16
+
+    Tue 17 Oct 2006 <h.m.brand@xs4all.nl>
+
+	- Default format for time HH.MM:SS => HH:MM:SS (wish K.Wittrock)
+	- Added digiAlign option. Default: "center" (wish K.Wittrock)
+	- $clock->coords (...) now used for the hands instead of
+	  deleting and (re)creating them (suggestion K.Wittrock)
+
 *** Release 0.15
 
     Sun 18 Sep 2005 <h.m.brand@xs4all.nl>
