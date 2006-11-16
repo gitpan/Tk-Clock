@@ -2,7 +2,7 @@
 
 package Tk::Clock;
 
-our $VERSION = "0.16";
+our $VERSION = "0.17";
 
 =head1 NAME
 
@@ -143,7 +143,7 @@ my %def_config = (
 	},
     fmtt	=> sub {
 	my ($h, $m, $s) = @_;
-	sprintf "%02d.%02d:%02d", $h, $m, $s;
+	sprintf "%02d:%02d:%02d", $h, $m, $s;
 	},
 
     _anaSize	=> $ana_base,	# Default size (height & width)
@@ -365,6 +365,15 @@ sub Populate
     $data->{Clock_m} = -1;
     $data->{Clock_s} = -1;
 
+    if (ref $args eq "HASH") {
+	my %args = %$args;
+	foreach my $arg (keys %args) {
+	    (my $attr = $arg) =~ s/^-//;
+	    exists $data->{$attr} and $data->{$attr} = delete $args{$arg};
+	    }
+	$args = { %args };
+	}
+
     $clock->SUPER::Populate ($args);
 
     $clock->ConfigSpecs (
@@ -379,7 +388,7 @@ sub Populate
     $data->{useAnalog}  and $clock->createAnalog;
     $data->{useDigital} and $clock->createDigital;
     $clock->resize;
-	
+
     $clock->repeat (995, ["run" => $clock]);
     } # Populate
 
@@ -403,31 +412,34 @@ sub config ($@)
 	}
 
     my $data = $clock->privateData;
-    foreach my $conf_spec (keys %def_config) {
-	defined $conf->{$conf_spec} or next;
-	defined $data->{$conf_spec} or next;
-	my $old = $data->{$conf_spec};
-	$data->{$conf_spec} = $conf->{$conf_spec};
-	if    ($conf_spec eq "tickColor") {
+    foreach my $conf_spec (keys %$conf) {
+	(my $attr = $conf_spec) =~ s/^-//;
+	defined $def_config{$attr} && defined $data->{$attr} or next;
+	my $old = $data->{$attr};
+	$data->{$attr} = $conf->{$conf_spec};
+	if    ($attr eq "tickColor") {
 	    $clock->itemconfigure ("tick", -fill => $data->{tickColor});
 	    }
-	elsif ($conf_spec eq "handColor") {
+	elsif ($attr eq "handColor") {
 	    $clock->itemconfigure ("hour", -fill => $data->{handColor});
 	    $clock->itemconfigure ("min",  -fill => $data->{handColor});
 	    }
-	elsif ($conf_spec eq "dateColor") {
+	elsif ($attr eq "secsColor") {
+	    $clock->itemconfigure ("sec",  -fill => $data->{secsColor});
+	    }
+	elsif ($attr eq "dateColor") {
 	    $clock->itemconfigure ("date", -fill => $data->{dateColor});
 	    }
-	elsif ($conf_spec eq "dateFont") {
+	elsif ($attr eq "dateFont") {
 	    $clock->itemconfigure ("date", -font => $data->{dateFont});
 	    }
-	elsif ($conf_spec eq "timeColor") {
+	elsif ($attr eq "timeColor") {
 	    $clock->itemconfigure ("time", -fill => $data->{timeColor});
 	    }
-	elsif ($conf_spec eq "timeFont") {
+	elsif ($attr eq "timeFont") {
 	    $clock->itemconfigure ("time", -font => $data->{timeFont});
 	    }
-	elsif ($conf_spec eq "dateFormat") {
+	elsif ($attr eq "dateFormat") {
 	    my %fmt = (
 		"d"	=> '%d',	# 6
 		"dd"	=> '%02d',	# 06
@@ -478,7 +490,7 @@ sub config ($@)
 		    sprintf qq!$fmt!$args;
 		    }";
 	    }
-	elsif ($conf_spec eq "timeFormat") {
+	elsif ($attr eq "timeFormat") {
 	    my %fmt = (
 		"H"	=> '%d',	# 6
 		"HH"	=> '%02d',	# 06
@@ -519,7 +531,7 @@ sub config ($@)
 		    sprintf qq!$fmt!$arg;
 		    }";
 	    }
-	elsif ($conf_spec eq "tickFreq") {
+	elsif ($attr eq "tickFreq") {
 #	    $data->{tickFreq} < 1 ||
 #	    $data->{tickFreq} != int $data->{tickFreq} and
 #		$data->{tickFreq} = $old;
@@ -528,7 +540,7 @@ sub config ($@)
 		$clock->createAnalog;
 		}
 	    }
-	elsif ($conf_spec eq "anaScale") {
+	elsif ($attr eq "anaScale") {
 	    if ($data->{anaScale} == 0) {	# 0 will be auto some time
 		$clock->Tk::bind         ("Tk::Clock","<<ResizeRequest>>", \&_resize_auto);
 		$clock->parent->Tk::bind ("<<ResizeRequest>>", \&_resize_auto);
@@ -550,7 +562,7 @@ sub config ($@)
 		    }
 		}
 	    }
-	elsif ($conf_spec eq "useAnalog") {
+	elsif ($attr eq "useAnalog") {
 	    if    ($old == 1 && $data->{useAnalog} == 0) {
 		$clock->destroyAnalog;
 		$clock->destroyDigital;
@@ -563,7 +575,7 @@ sub config ($@)
 		}
 	    $clock->after (5, ["run" => $clock]);
 	    }
-	elsif ($conf_spec eq "useDigital") {
+	elsif ($attr eq "useDigital") {
 	    if    ($old == 1 && $data->{useDigital} == 0) {
 		$clock->destroyDigital;
 		}
@@ -572,7 +584,7 @@ sub config ($@)
 		}
 	    $clock->after (5, ["run" => $clock]);
 	    }
-	elsif ($conf_spec eq "digiAlign") {
+	elsif ($attr eq "digiAlign") {
 	    if ($data->{useDigital} && $old ne $data->{digiAlign}) {
 		$clock->destroyDigital;
 		$clock->createDigital;

@@ -1,3 +1,11 @@
+*** Release 0.17
+
+    Thu 16 Nov 2006 <h.m.brand@xs4all.nl>
+
+	- Missed one '.' in the format change (K.Wittrock)
+	- secsColor was missed in config attrib handling
+	- allow both -secsColor and secsColor
+
 *** Release 0.16
 
     Tue 17 Oct 2006 <h.m.brand@xs4all.nl>
