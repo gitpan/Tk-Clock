@@ -1,3 +1,12 @@
+*** Release 0.18
+
+    Fri 27 Apr 2007 <h.m.brand@xs4all.nl>
+
+	- Added cover make target
+	- Added auto-resize test. Still depends on user doing the resize
+	- Increased coverage. More coverage is doable, but it'll be a
+	  booooring job to wait for the tests to finish
+
 *** Release 0.17
 
     Thu 16 Nov 2006 <h.m.brand@xs4all.nl>

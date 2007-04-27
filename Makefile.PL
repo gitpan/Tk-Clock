@@ -16,3 +16,15 @@ WriteMakefile (
     );
 
 1;
+
+package MY;
+
+sub postamble
+{
+    join "\n" =>
+	'cover test_cover:',
+	'	cover -delete',
+	'	HARNESS_PERL_SWITCHES=-MDevel::Cover $(MAKE) test',
+	'	cover',
+	'';
+    } # postamble

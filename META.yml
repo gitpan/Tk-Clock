@@ -1,9 +1,9 @@
 --- #YAML:1.0
 name:                Tk-Clock
-version:             0.17
+version:             0.18
 abstract:            Clock widget with analog and digital display
 license:             ~
-generated_by:        ExtUtils::MakeMaker version 6.31
+generated_by:        ExtUtils::MakeMaker version 6.32
 distribution_type:   module
 requires:     
     Tk:                            402.000

@@ -14,10 +14,9 @@ PREREQUISITES
     perl5 (probably 5.004.04 or better)
     Tk (probably 400.xxx or better)
 
-    I was able to test it on perl version 5.005.03 with Tk 800.014
-    and Tk 800.015,  but it doesn't use stange or undocumented
-    features, so it will probably run on older Tk and/or perl
-    versions. Latest versions tried with: 5.9.3 + 804.025
+    This port was tested on several OS's with perl-5.8.8-dor,
+    perl-5.8.7-dor, and perl-5.8.5-dor in 32bit and 64bit builds
+    all with Tk-804.027.
 
 BUILDING AND INSTALLATION
     As all CPAN modules:
@@ -48,7 +47,7 @@ PLANNED ENHANCEMENTS
 
 COPYRIGHT AND LICENSE
 
-    Copyright (C) 1999-2005 H.Merijn Brand
+    Copyright (C) 1999-2006 H.Merijn Brand
 
     This library is free software; you can redistribute it and/or modify
     it under the same terms as Perl itself. 

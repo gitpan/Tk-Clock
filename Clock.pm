@@ -2,7 +2,7 @@
 
 package Tk::Clock;
 
-our $VERSION = "0.17";
+our $VERSION = "0.18";
 
 =head1 NAME
 
@@ -467,7 +467,7 @@ sub config ($@)
 			my $l = length ($f) - 1;
 			$args .= ", Tk::Clock::month (\$m, $l)";
 			}
-		    elsif ($f =~ m/^ddd+/) {
+		    elsif ($f =~ m/^ddd+$/) {
 			my $l = length ($f) - 3;
 			$args .= ", Tk::Clock::wday (\$wd, $l)";
 			}
@@ -503,6 +503,7 @@ sub config ($@)
 		"A"	=> '%s',	# PM
 		"dd"	=> '%.2s',	# Mo
 		"ddd"	=> '%.3s',	# Mon
+		"dddd"	=> '%s',	# Monday
 		);
 	    my $fmt = $data->{timeFormat};
 	    $fmt =~ m(^[-AhHMSd\.: ]*$) or croak "Bad timeFormat";
@@ -510,9 +511,9 @@ sub config ($@)
 	    my $arg = "";
 	    $fmt = "";
 	    foreach my $f (@fmt) {
-		if ($f =~ m/^dd?$/) {
+		if ($f =~ m/^dd{1,3}$/) {
 		    $fmt .= $fmt{$f};
-		    $arg .= ", Tk::Clock::wday (\$d, 0)";
+		    $arg .= ", Tk::Clock::wday (\$d, 1)";
 		    }
 		elsif (defined $fmt{$f}) {
 		    $fmt .= $fmt{$f};
