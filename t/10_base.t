@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 23;
+use Test::More tests => 22;
 
 BEGIN {
     use_ok ("Tk");
@@ -139,15 +139,6 @@ $c->after ($delay, sub {
 	dateFont   => "-misc-fixed-medium-r-normal--14-*-75-75-c-*-iso8859-1",
 	}), "        Increase date font size");
     });
-
-$delay += $period;
-$c->after ($delay, sub {
-    print STDERR "# Feel free to resize the clock now with your mouse!\n";
-    ok ($c->config ({
-	anaScale   => 0,
-	}), "        Auto-resize");
-    });
-$period += 5000;	# Give more time to resize
 
 $delay += $period;
 $c->after ($delay, sub {

@@ -7,5 +7,7 @@ examples/simple.pl
 examples/24hour.pl
 t/00_pod.t
 t/01_pod.t
-t/clock.t
+t/10_base.t
+t/20_resize.t
+t/30_dual.t
 META.yml                                 Module meta-data (added by MakeMaker)

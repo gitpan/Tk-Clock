@@ -1,3 +1,17 @@
+*** Release 0.20
+
+    Tue 08 May 2007 <h.m.brand@xs4all.nl>
+
+	- LICENSE entry for MakeMaker only for newer versions
+	- Updated plans/TODO
+	- Updated Copyrights
+	- Moved pod to bottom
+	- Added timeZone support!
+	- Split up tests
+	- Loosened up the dateFormat and timeFormat attributes to
+	  allow fixed text. Needs documentation!
+	- Added a test with three clocks side-by-side with different TZ's
+
 *** Release 0.18
 
     Fri 27 Apr 2007 <h.m.brand@xs4all.nl>

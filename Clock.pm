@@ -2,103 +2,7 @@
 
 package Tk::Clock;
 
-our $VERSION = "0.18";
-
-=head1 NAME
-
-Tk::Clock - Clock widget with analog and digital display
-
-=head1 SYNOPSIS
-
-use Tk
-use Tk::Clock;
-
-$clock = $parent->Clock (?-option => <value> ...?);
-
-$clock->config (	# These reflect the defaults
-    useDigital	=> 1,
-    useAnalog	=> 1,
-    anaScale	=> 100,
-    ana24hour	=> 0,
-    handColor	=> "Green4",
-    secsColor	=> "Green2",
-    tickColor	=> "Yellow4",
-    tickFreq	=> 1,
-    timeFont	=> "fixed",
-    timeColor	=> "Red4",
-    timeFormat	=> "HH:MM:SS",
-    dateFont	=> "fixed",
-    dateColor	=> "Blue4",
-    dateFormat	=> "dd-mm-yy",
-    digiAlign   => "center",
-    );
-
-=head1 DESCRIPTION
-
-Create a clock canvas with both an analog- and a digital display. Either
-can be disabled by setting useAnalog or useDigital to 0 resp.
-
-Legal dateFormat characters are d and dd for date, ddd and dddd for weekday,
-m, mm, mmm and mmmm for month, y and yy for year, w and ww for weeknumber and
-any separators :, -, / or space.
-
-Legal timeFormat characters are H and HH for hour, h and hh for AM/PM hour,
-M and MM for minutes, S and SS for seconds, A for AM/PM indicator, d and dd
-for day-of-the week in two or three characters resp. and any separators :,
--, . or space.
-
-Meaningful values for tickFreq are 1, 5 and 15 showing all ticks, tick
-every 5 minutes or the four main ticks only, though any positive integer
-will do (put a tick on any tickFreq minute).
-
-The analog clock can be enlaged or reduced using anaScale for which the
-default of 100% is about 72x72 pixels. Setting anaScale to 0, will try to
-resize the widget to it's container automatically.
-
-For digiAlign, "left", "center", and "right" are the only supported values.
-Any other value will be interpreted as the default "center".
-
-When using C<pack> for your geometry management, be sure to pass
-C<-expand =&gt; 1, -fill =&gt; "both"> if you plan to resize with
-C<anaScale> or enable/disable either analog or digital after the
-clock was displayed.
-
-=head1 BUGS
-
-If the system load's too high, the clock might skip some seconds.
-
-Due to the fact that the year is expressed in 2 digit's, this
-widget is not Y2K compliant in the default configuration.
-
-There's no check if either format will fit in the given space.
-
-=head1 TODO
-
-* Using POSIX' strftime () for dateFormat. Current implementation
-  would probably make this very slow.
-* Auto sizing to fit (analog) clock in given space.
-  that is the reverse of what happens now.
-
-=head1 AUTHOR
-
-H.Merijn Brand <h.m.brand@xs4all.nl>
-
-Thanks to Larry Wall for inventing perl.
-Thanks to Nick Ing-Simmons for providing perlTk.
-Thanks to Achim Bohnet for introducing me to OO (and converting
-    the basics of my clock.pl to Tk::Clock.pm).
-Thanks to Sriram Srinivasan for understanding OO though his Panther book.
-Thanks to all CPAN providers for support of different modules to learn from.
-Thanks to all who have given me feedback.
-
-=head1 COPYRIGHT AND LICENSE
-
-Copyright (C) 1999-2006 H.Merijn Brand
-
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself. 
-
-=cut
+our $VERSION = "0.19";
 
 use strict;
 use warnings;
@@ -120,6 +24,8 @@ my %def_config = (
     handColor	=> "Green4",
     secsColor	=> "Green2",
     tickColor	=> "Yellow4",
+
+    timeZone	=> "",
 
     timeFont	=> "fixed",
     timeColor	=> "Red4",
@@ -456,8 +362,9 @@ sub config ($@)
 		"ww"	=> '%02d',	# 28
 		);
 	    my $fmt = $data->{dateFormat};
-	    $fmt =~ m(^[-dmyw/: \n]*$) or croak "Bad dateFormat";
-	    my @fmt = split m/([^dmyw]+)/, $fmt;
+	    $fmt =~ m{[\%\@\$]} and croak "%, \@ and \$ not allowed in dateFormat";
+	    my $xfmt = join "|", reverse sort keys %fmt;
+	    my @fmt = split m/\b($xfmt)\b/, $fmt;
 	    my $args = "";
 	    $fmt = "";
 	    foreach my $f (@fmt) {
@@ -506,8 +413,9 @@ sub config ($@)
 		"dddd"	=> '%s',	# Monday
 		);
 	    my $fmt = $data->{timeFormat};
-	    $fmt =~ m(^[-AhHMSd\.: ]*$) or croak "Bad timeFormat";
-	    my @fmt = split m/([^AhHMSd]+)/, $fmt;
+	    $fmt =~ m/[\%\@\$]/ and croak "%, \@ and \$ not allowed in timeFormat";
+	    my $xfmt = join "|", reverse sort keys %fmt;
+	    my @fmt = split m/\b($xfmt)\b/, $fmt;
 	    my $arg = "";
 	    $fmt = "";
 	    foreach my $f (@fmt) {
@@ -601,9 +509,11 @@ sub run ($)
 {
     my $clock = shift;
 
-    my (@t) = localtime time;
-
     my $data = $clock->privateData;
+
+    my @t;
+    $data->{timeZone} and local $ENV{TZ} = $data->{timeZone};
+    @t = localtime time;
 
     unless ($t[2] == $data->{Clock_h}) {
 	$data->{Clock_h} = $t[2];
@@ -638,3 +548,102 @@ sub run ($)
     } # run
 
 1;
+
+__END__
+
+=head1 NAME
+
+Tk::Clock - Clock widget with analog and digital display
+
+=head1 SYNOPSIS
+
+use Tk
+use Tk::Clock;
+
+$clock = $parent->Clock (?-option => <value> ...?);
+
+$clock->config (	# These reflect the defaults
+    useDigital	=> 1,
+    useAnalog	=> 1,
+    anaScale	=> 100,
+    ana24hour	=> 0,
+    handColor	=> "Green4",
+    secsColor	=> "Green2",
+    tickColor	=> "Yellow4",
+    tickFreq	=> 1,
+    timeZone	=> "",
+    timeFont	=> "fixed",
+    timeColor	=> "Red4",
+    timeFormat	=> "HH:MM:SS",
+    dateFont	=> "fixed",
+    dateColor	=> "Blue4",
+    dateFormat	=> "dd-mm-yy",
+    digiAlign   => "center",
+    );
+
+=head1 DESCRIPTION
+
+Create a clock canvas with both an analog- and a digital display. Either
+can be disabled by setting useAnalog or useDigital to 0 resp.
+
+Legal dateFormat characters are d and dd for date, ddd and dddd for weekday,
+m, mm, mmm and mmmm for month, y and yy for year, w and ww for weeknumber and
+any separators :, -, / or space.
+
+Legal timeFormat characters are H and HH for hour, h and hh for AM/PM hour,
+M and MM for minutes, S and SS for seconds, A for AM/PM indicator, d and dd
+for day-of-the week in two or three characters resp. and any separators :,
+-, . or space.
+
+Meaningful values for tickFreq are 1, 5 and 15 showing all ticks, tick
+every 5 minutes or the four main ticks only, though any positive integer
+will do (put a tick on any tickFreq minute).
+
+The analog clock can be enlaged or reduced using anaScale for which the
+default of 100% is about 72x72 pixels. Setting anaScale to 0, will try to
+resize the widget to it's container automatically.
+
+For digiAlign, "left", "center", and "right" are the only supported values.
+Any other value will be interpreted as the default "center".
+
+When using C<pack> for your geometry management, be sure to pass
+C<-expand =&gt; 1, -fill =&gt; "both"> if you plan to resize with
+C<anaScale> or enable/disable either analog or digital after the
+clock was displayed.
+
+=head1 BUGS
+
+If the system load's too high, the clock might skip some seconds.
+
+Due to the fact that the year is expressed in 2 digit's, this
+widget is not Y2K compliant in the default configuration.
+
+There's no check if either format will fit in the given space.
+
+=head1 TODO
+
+* Using POSIX' strftime () for dateFormat. Current implementation
+  would probably make this very slow.
+* Full support for multi-line date- and time-formats with auto-resize.
+* Countdown clock.
+
+=head1 AUTHOR
+
+H.Merijn Brand <h.m.brand@xs4all.nl>
+
+Thanks to Larry Wall for inventing perl.
+Thanks to Nick Ing-Simmons for providing perlTk.
+Thanks to Achim Bohnet for introducing me to OO (and converting
+    the basics of my clock.pl to Tk::Clock.pm).
+Thanks to Sriram Srinivasan for understanding OO though his Panther book.
+Thanks to all CPAN providers for support of different modules to learn from.
+Thanks to all who have given me feedback.
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 1999-2007 H.Merijn Brand
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself. 
+
+=cut

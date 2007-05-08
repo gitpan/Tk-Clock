@@ -1,4 +1,5 @@
-Tk-Clock
+Tk::Clock
+    Clock widget for Perl/Tk with analog and/or digital display
 
 DESCRIPTION
     A canvas clock widget with both analog and digital represen-
@@ -40,14 +41,8 @@ BUILDING AND INSTALLATION
 CHANGES
     See ChangeLog
 
-PLANNED ENHANCEMENTS
-    Dynamic scaling.
-    Full support for multi-line date- and time-formats with auto-
-    resize.
-
 COPYRIGHT AND LICENSE
-
-    Copyright (C) 1999-2006 H.Merijn Brand
+    Copyright (C) 1999-2007 H.Merijn Brand
 
     This library is free software; you can redistribute it and/or modify
     it under the same terms as Perl itself. 
