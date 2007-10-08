@@ -2,10 +2,10 @@
 
 package Tk::Clock;
 
-our $VERSION = "0.19";
-
 use strict;
 use warnings;
+
+our $VERSION = "0.20";
 
 use Carp;
 
@@ -543,7 +543,7 @@ sub run ($)
 	$data->{useDigital} and
 	    $clock->itemconfigure ("time",
 		-text => &{$data->{fmtt}} (@t[2,1,0,6]));
-        } 
+        }
     $data->{anaScale} == 0 and $clock->_resize_auto;
     } # run
 
@@ -644,6 +644,6 @@ Thanks to all who have given me feedback.
 Copyright (C) 1999-2007 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself. 
+it under the same terms as Perl itself.
 
 =cut

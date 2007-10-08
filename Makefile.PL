@@ -2,6 +2,8 @@
 
 # Copyright PROCURA B.V. (c) 1999-2007 H.Merijn Brand
 
+require 5.006;
+
 use ExtUtils::MakeMaker;
 
 my %wm = (

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 16;
+use Test::More tests => 20;
 
 BEGIN {
     use_ok ("Tk");
@@ -42,7 +42,7 @@ like ($c2->config (
     %defconfig,
     handColor  => "Orange",
     timeZone   => "GMT",
-    dateFormat => "London",
+    dateFormat => "London (GMT)",
     ), qr(^Tk::Clock=HASH), "config");
 ok ($c2->pack (-side => "left", -expand => 1, -fill => "both"), "pack");
 
@@ -51,14 +51,23 @@ like ($c3->config (
     %defconfig,
     handColor  => "Yellow",
     timeZone   => "MET-1METDST",
-    dateFormat => "Amsterdam",
+    dateFormat => "Amsterdam (MET)",
     ), qr(^Tk::Clock=HASH), "config");
 ok ($c3->pack (-side => "left", -expand => 1, -fill => "both"), "pack");
 
+ok (my $c4 = $m->Clock (-background => "Black"),	"Clock Tokyo");
+like ($c4->config (
+    %defconfig,
+    handColor  => "Yellow",
+    timeZone   => "Asia/Tokyo",
+    dateFormat => "Asia/Tokyo",
+    ), qr(^Tk::Clock=HASH), "config");
+ok ($c4->pack (-side => "left", -expand => 1, -fill => "both"), "pack");
+
 $delay += $period;
 $c3->after ($delay, sub {
-    $_->destroy for $c1, $c2, $c3;
-    ok (!Exists ($_), "Destroy Clock") for $c1, $c2, $c3;
+    $_->destroy for $c1, $c2, $c3, $c4;
+    ok (!Exists ($_), "Destroy Clock") for $c1, $c2, $c3, $c4;
     $m->destroy;
     ok (!Exists ($m), "Destroy Main");
     exit;

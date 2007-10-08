@@ -3,8 +3,9 @@ MANIFEST
 Makefile.PL
 README
 Clock.pm
-examples/simple.pl
 examples/24hour.pl
+examples/simple.pl
+examples/world.pl
 t/00_pod.t
 t/01_pod.t
 t/10_base.t

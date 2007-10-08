@@ -1,5 +1,14 @@
 *** Release 0.20
 
+    Tue 08 Oct 2007 <h.m.brand@xs4all.nl>
+
+	- Added a 7-clocks wide example/world.pl
+	- And fixed the Time Zones in world.pl
+	- Raised requirement to 5.006, as I use our and recent Tk builds
+	  require 5.007
+
+*** Release 0.19
+
     Tue 08 May 2007 <h.m.brand@xs4all.nl>
 
 	- LICENSE entry for MakeMaker only for newer versions
