@@ -13,19 +13,19 @@ my %TZ;
 while (<DATA>) {
     if (m/^(\S+)\s+(GMT\S*)\s+(.*)$/) {
 	$TZ{$1}   = [ $1, $2, undef, $3 ];
-	$TZ{$2} //= [ $1, $2, undef, $3 ];
+	$TZ{$2} ||= [ $1, $2, undef, $3 ];
 	}
     if (m/^(.*?)(?:\s+\*)?\s+(GMT\S*)$/) {
-	$TZ{$2} //= [ $2, $2, undef, "" ];
-	$TZ{$2}[2] //= $1;
+	$TZ{$2} ||= [ $2, $2, undef, "" ];
+	$TZ{$2}[2] ||= $1;
 	exists $TZ{$TZ{$2}[1]} and
-	    $TZ{$TZ{$2}[1]}[2] //= $1;
+	    $TZ{$TZ{$2}[1]}[2] ||= $1;
 	}
     }
 
 # my $tz = strftime ("%Z", localtime);
 foreach my $cd (
-	[ "Local",		$ENV{TZ}//"",		"Red"		],
+	[ "Local",		$ENV{TZ}||"",		"Red"		],
 	[ "London",		"Europe/London",	"OrangeRed"	],
 	[ "Amsterdam",		"Europe/Amsterdam",	"Orange"	],
 	[ "Moscow",		"Europe/Moscow",	"Yellow"	],

@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 22;
+use Test::More tests => 23;
 
 BEGIN {
     use_ok ("Tk");
@@ -138,6 +138,22 @@ $c->after ($delay, sub {
 	anaScale   => 150,
 	dateFont   => "-misc-fixed-medium-r-normal--14-*-75-75-c-*-iso8859-1",
 	}), "        Increase date font size");
+    });
+
+$delay += $period;
+$c->after ($delay, sub {
+    $c->configure (-background => "Black");
+    ok ($c->config ({
+	useAnalog  => 1,
+	useDigital => 0,
+	secsColor  => "Red",
+	tickColor  => "White",
+	handColor  => "White",
+	handCenter => 1,
+	tickFreq   => 1,
+	tickDiff   => 1,
+	anaScale   => 250,
+	}), "        Station clock: hand centers and tick width");
     });
 
 $delay += $period;

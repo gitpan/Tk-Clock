@@ -5,7 +5,7 @@ package Tk::Clock;
 use strict;
 use warnings;
 
-our $VERSION = "0.20";
+our $VERSION = "0.21";
 
 use Carp;
 
@@ -24,6 +24,8 @@ my %def_config = (
     handColor	=> "Green4",
     secsColor	=> "Green2",
     tickColor	=> "Yellow4",
+    tickDiff	=> 0,
+    handCenter	=> 0,
 
     timeZone	=> "",
 
@@ -40,6 +42,7 @@ my %def_config = (
     anaScale	=> 100,
     tickFreq	=> 1,
     ana24hour	=> 0,
+    countDown	=> 0,
 
     digiAlign	=> "center",
 
@@ -131,7 +134,8 @@ sub _resize_auto ($)
     my $geo   = $clock->geometry;
     my $owdth = $data->{useAnalog} * $data->{_anaSize};
     my ($gw, $gh) = split m/\D/, $geo;
-    my $nwdth = min ($gw, $gh - 1 - $data->{_digSize});
+    $data->{useDigital}   and $gh -= $data->{_digSize};
+    my $nwdth = min ($gw, $gh - 1);
     abs ($nwdth - $owdth) > 5 && $nwdth >= 10 or return;
 
     $data->{_anaSize} = $nwdth - 2;
@@ -175,9 +179,9 @@ sub createDigital ($)
 	-fill   => $data->{timeColor},
 	-text   => $data->{timeFormat},
 	-tags   => "time");
-    $data->{Clock_h} = -1;
+#   $data->{Clock_h} = -1;
 #   $data->{Clock_m} = -1;
-    $data->{Clock_s} = -1;
+#   $data->{Clock_s} = -1;
     $clock->resize;
     } # createDigital
 
@@ -194,6 +198,7 @@ sub where ($$$$)
     my ($clock, $tick, $len, $anaSize) = @_;      # ticks 0 .. 59
     my ($x, $y, $a);
 
+    $clock->privateData->{countDown} and $tick = (60 - $tick) % 60;
     my $h = ($anaSize + 1) / 2;
     $a = $tick * .104720;
     $x = $len  * sin ($a) * $anaSize / 73;
@@ -223,7 +228,8 @@ sub createAnalog ($)
 	    -tags  => "tick",
 	    -arrow => "none",
 	    -fill  => $data->{tickColor},
-	    -width => 1.0);
+	    -width => $data->{tickDiff} && $dtick % 10 == 0 ? 4.0 : 1.0,
+	    );
 	}
     $data->{Clock_h} = -1;
     $data->{Clock_m} = -1;
@@ -234,19 +240,39 @@ sub createAnalog ($)
 	    -tags  => "hour",
 	    -arrow => "none",
 	    -fill  => $data->{handColor},
-	    -width => $data->{_anaSize} / 26);
+	    -width => $data->{_anaSize} / ($data->{handCenter} ? 35 : 26),
+	    );
+    if ($data->{handCenter}) {
+	my $cntr = $data->{_anaSize} /  2;
+	my $diam = $data->{_anaSize} / 30;
+	$clock->createOval (($cntr - $diam) x 2, ($cntr + $diam) x 2,
+	    -tags  => "hour",
+	    -fill  => $data->{handColor},
+	    -width => 0.
+	    );
+	}
     $clock->createLine (
 	$clock->where (0, 30, $data->{_anaSize}),
 	    -tags  => "min",
 	    -arrow => "none",
 	    -fill  => $data->{handColor},
-	    -width => $data->{_anaSize} / 30);
+	    -width => $data->{_anaSize} / ($data->{handCenter} ? 60 : 30),
+	    );
     $clock->createLine (
 	$clock->where (0, 34, $data->{_anaSize}),
 	    -tags  => "sec",
 	    -arrow => "none",
 	    -fill  => $data->{secsColor},
 	    -width => 0.8);
+    if ($data->{handCenter}) {
+	my $cntr = $data->{_anaSize} /  2;
+	my $diam = $data->{_anaSize} / 35;
+	$clock->createOval (($cntr - $diam) x 2, ($cntr + $diam) x 2,
+	    -tags  => "sec",
+	    -fill  => $data->{secsColor},
+	    -width => 0.
+	    );
+	}
 
     $clock->resize;
     } # createAnalog
@@ -270,6 +296,7 @@ sub Populate
     $data->{Clock_h} = -1;
     $data->{Clock_m} = -1;
     $data->{Clock_s} = -1;
+    $data->{_time_}  = -1;
 
     if (ref $args eq "HASH") {
 	my %args = %$args;
@@ -450,6 +477,7 @@ sub config ($@)
 		}
 	    }
 	elsif ($attr eq "anaScale") {
+	    $data->{anaScale} eq "auto" and $data->{anaScale} = 0;
 	    if ($data->{anaScale} == 0) {	# 0 will be auto some time
 		$clock->Tk::bind         ("Tk::Clock","<<ResizeRequest>>", \&_resize_auto);
 		$clock->parent->Tk::bind ("<<ResizeRequest>>", \&_resize_auto);
@@ -511,9 +539,11 @@ sub run ($)
 
     my $data = $clock->privateData;
 
-    my @t;
     $data->{timeZone} and local $ENV{TZ} = $data->{timeZone};
-    @t = localtime time;
+    my $t = time;
+    $t == $data->{_time_} and return;	# Same time, no update
+    $data->{_time_} = $t;
+    my @t = localtime $t;
 
     unless ($t[2] == $data->{Clock_h}) {
 	$data->{Clock_h} = $t[2];
@@ -534,16 +564,15 @@ sub run ($)
 	    }
 	}
 
-    unless ($t[0] == $data->{Clock_s}) {
-        $data->{Clock_s} = $t[0];
-        if ($data->{useAnalog}) {
-	    $clock->coords ("sec",
-		$clock->where ($data->{Clock_s}, 34, $data->{_anaSize}));
-	    }
-	$data->{useDigital} and
-	    $clock->itemconfigure ("time",
-		-text => &{$data->{fmtt}} (@t[2,1,0,6]));
-        }
+    $data->{Clock_s} = $t[0];
+    if ($data->{useAnalog}) {
+	$clock->coords ("sec",
+	    $clock->where ($data->{Clock_s}, 34, $data->{_anaSize}));
+	}
+    $data->{useDigital} and
+	$clock->itemconfigure ("time",
+	    -text => &{$data->{fmtt}} (@t[2,1,0,6]));
+
     $data->{anaScale} == 0 and $clock->_resize_auto;
     } # run
 
@@ -569,8 +598,10 @@ $clock->config (	# These reflect the defaults
     ana24hour	=> 0,
     handColor	=> "Green4",
     secsColor	=> "Green2",
+    handCenter	=> 0,
     tickColor	=> "Yellow4",
     tickFreq	=> 1,
+    tickDiff    => 0,
     timeZone	=> "",
     timeFont	=> "fixed",
     timeColor	=> "Red4",
@@ -597,7 +628,8 @@ for day-of-the week in two or three characters resp. and any separators :,
 
 Meaningful values for tickFreq are 1, 5 and 15 showing all ticks, tick
 every 5 minutes or the four main ticks only, though any positive integer
-will do (put a tick on any tickFreq minute).
+will do (put a tick on any tickFreq minute). When setting tickDiff to a
+true value, the major ticks will use a thicker line than the minor ticks.
 
 The analog clock can be enlaged or reduced using anaScale for which the
 default of 100% is about 72x72 pixels. Setting anaScale to 0, will try to
@@ -625,7 +657,8 @@ There's no check if either format will fit in the given space.
 * Using POSIX' strftime () for dateFormat. Current implementation
   would probably make this very slow.
 * Full support for multi-line date- and time-formats with auto-resize.
-* Countdown clock.
+* Countdown clock API, incl action when done.
+* Better docs for the attributes
 
 =head1 AUTHOR
 

@@ -1,3 +1,14 @@
+*** Release 0.21
+
+    Fri 09 Nov 2007 <h.m.brand@xs4all.nl>
+
+	- Added tickDiff attribute for width-diff of the ticks
+	- Added handCenter attribute (see examples/station.pl)
+	- Added examples/station.pl (Stations klok)
+	- Added countDown attribute and examples/countdown.pl
+	- Fixed auto-resize for clocks with digital disabled
+	- Tested with Tk-804.027_501+
+
 *** Release 0.20
 
     Tue 08 Oct 2007 <h.m.brand@xs4all.nl>

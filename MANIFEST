@@ -4,7 +4,9 @@ Makefile.PL
 README
 Clock.pm
 examples/24hour.pl
+examples/countdown.pl
 examples/simple.pl
+examples/station.pl
 examples/world.pl
 t/00_pod.t
 t/01_pod.t

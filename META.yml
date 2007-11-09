@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                Tk-Clock
-version:             0.20
+version:             0.21
 abstract:            Clock widget with analog and digital display
 license:             perl
 generated_by:        ExtUtils::MakeMaker version 6.36

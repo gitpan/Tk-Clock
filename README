@@ -38,6 +38,11 @@ BUILDING AND INSTALLATION
 	   double line date format showing the day of the week
 	   and the date.
 
+BUGS
+    Probably a few. One of them is that if you change the clock
+    too often with ->config (), some elements might not be moved
+    correctly, like getting a clock with 5 hands :)
+
 CHANGES
     See ChangeLog
 
