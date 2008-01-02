@@ -5,7 +5,7 @@ package Tk::Clock;
 use strict;
 use warnings;
 
-our $VERSION = "0.21";
+our $VERSION = "0.22";
 
 use Carp;
 
@@ -196,13 +196,13 @@ sub destroyDigital ($)
 sub where ($$$$)
 {
     my ($clock, $tick, $len, $anaSize) = @_;      # ticks 0 .. 59
-    my ($x, $y, $a);
+    my ($x, $y, $angle);
 
     $clock->privateData->{countDown} and $tick = (60 - $tick) % 60;
     my $h = ($anaSize + 1) / 2;
-    $a = $tick * .104720;
-    $x = $len  * sin ($a) * $anaSize / 73;
-    $y = $len  * cos ($a) * $anaSize / 73;
+    $angle = $tick * .104720;
+    $x = $len  * sin ($angle) * $anaSize / 73;
+    $y = $len  * cos ($angle) * $anaSize / 73;
     ($h - $x / 4, $h + $y / 4, $h + $x, $h - $y);
     } # where
 
@@ -219,9 +219,9 @@ sub createAnalog ($)
 	my $l = $dtick % 30 == 0 ? $h / 5 :
 		$dtick % 10 == 0 ? $h / 8 :
 				   $h / 16;
-	my $a = ($dtick / 2) * .104720;
-	my $x = sin $a;
-	my $y = cos $a;
+	my $angle = ($dtick / 2) * .104720;
+	my $x = sin $angle;
+	my $y = cos $angle;
 	$clock->createLine (
 	    ($h - $l) * $x + $h + 1, ($h - $l) * $y + $h + 1,
 	     $h       * $x + $h + 1,  $h       * $y + $h + 1,
@@ -674,7 +674,7 @@ Thanks to all who have given me feedback.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 1999-2007 H.Merijn Brand
+Copyright (C) 1999-2008 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
