@@ -1,8 +1,15 @@
 #!/usr/bin/perl
 
-# Copyright PROCURA B.V. (c) 1999-2008 H.Merijn Brand
+# Copyright PROCURA B.V. (c) 1999-2009 H.Merijn Brand
 
 require 5.006;
+
+use strict;
+
+# Be kind to testers, not verbose
+if (exists $ENV{AUTOMATED_TESTING} and $ENV{AUTOMATED_TESTING}) {
+    $ENV{DISPLAY} or exit 0;
+    }
 
 use ExtUtils::MakeMaker;
 
