@@ -5,7 +5,7 @@ package Tk::Clock;
 use strict;
 use warnings;
 
-our $VERSION = "0.24";
+our $VERSION = "0.25";
 
 use Carp;
 
@@ -29,16 +29,17 @@ my %def_config = (
 
     timeZone	=> "",
 
-    timeFont	=> "fixed",
+    timeFont	=> "fixed 6",
     timeColor	=> "Red4",
     timeFormat	=> "HH:MM:SS",
 
-    dateFont	=> "fixed",
+    dateFont	=> "fixed 6",
     dateColor	=> "Blue4",
     dateFormat	=> "dd-mm-yy",
 
     useDigital	=> 1,
     useAnalog	=> 1,
+    autoScale	=> 0,
     anaScale	=> 100,
     tickFreq	=> 1,
     ana24hour	=> 0,
@@ -57,6 +58,7 @@ my %def_config = (
 
     _anaSize	=> $ana_base,	# Default size (height & width)
     _digSize	=> 26,		# Height
+    _packMethod	=> undef,	# what geometry manager is used
     );
 
 sub _month ($$)
@@ -96,6 +98,57 @@ sub _max ($$)
     $_[0] >= $_[1] ? $_[0] : $_[1];
     } # _max
 
+sub _packMethod ($)
+{
+    my $clock = shift;
+    my $data = $clock->privateData;
+
+    $data->{_packMethod} and return $data->{_packMethod};
+
+    no warnings;
+
+    eval { $clock->packInfo };
+    $@ or return $data->{_packMethod} = "pack";
+
+    eval { $clock->gridInfo };
+    $@ or return $data->{_packMethod} = "grid";
+
+    eval { $clock->formInfo };
+    $@ or return $data->{_packMethod} = "form";
+
+    eval { $clock->placeInfo };
+    $@ or return $data->{_packMethod} = "place";
+    } # _packMethod
+
+# Transparent packInfo for pack/grid/place/form
+sub _packinfo ($)
+{
+    my $clock = shift;
+
+    my %pi = map { ("-$_" => 0) } qw( padx pady ipadx ipady );
+    if (my $pm = $clock->_packMethod) {
+	   if ($pm eq "pack") {
+	    %pi = $clock->packInfo;
+	    }
+	elsif ($pm eq "grid") {
+	    %pi = $clock->gridInfo;
+	    }
+	elsif ($pm eq "form") {
+	    %pi = $clock->formInfo;
+	    # padx pady padleft padright padtop padbottom
+	    $pi{"-ipadx"} = int (((delete $pi{"-padleft"}) + (delete $pi{"-padright"} )) / 2);
+	    $pi{"-ipady"} = int (((delete $pi{"-padtop"} ) + (delete $pi{"-padbottom"})) / 2);
+	    }
+	elsif ($pm eq "place") {
+	    # No action, place has no padding
+	    }
+	else {
+	    # No action, unknown geometry manager
+	    }
+	}
+    %pi;
+    } # _packinfo
+
 sub _resize ($)
 {
     my $clock = shift;
@@ -107,15 +160,13 @@ sub _resize ($)
     my $wdth = _max ($data->{useAnalog}  * $data->{_anaSize},
 		     $data->{useDigital} * 72);
     my $dim  = "${wdth}x${hght}";
-    $clock->cget (-height) == $hght &&
-     $clock->cget (-width) == $wdth and return $dim;
-    if ($clock->parent->isa ("MainWindow")) {
-	my $geo = $clock->parent->geometry;
-	my @geo = split m/\D/ => $geo;
-	if ($geo[0] > 5 && $geo[1] > 5) {
-	    $geo =~ s/^\d+x\d+//;
-	    $clock->parent->geometry ("$dim$geo");
-	    }
+    my $geo   = $clock->parent->geometry;
+    my ($pw, $ph) = split m/\D/, $geo; # Cannot use ->cget here
+    if ($ph > 5 && $clock->parent->isa ("MainWindow")) {
+	my %pi = $clock->_packinfo;
+	my $px = _max ($wdth + $pi{"-padx"}, $pw);
+	my $py = _max ($hght + $pi{"-pady"}, $ph);
+	$clock->parent->geometry ("${px}x$py");
 	}
     $clock->configure (
 	-height => $hght,
@@ -129,12 +180,15 @@ sub _resize_auto ($)
     my $clock = shift;
     my $data  = $clock->privateData;
 
-    $data->{useAnalog} && $data->{anaScale} == 0 or return;
+    $data->{useAnalog} && $data->{autoScale} == 1 or return;
 
-    my $geo   = $clock->geometry;
     my $owdth = $data->{useAnalog} * $data->{_anaSize};
-    my ($gw, $gh) = split m/\D/, $geo;
-    $data->{useDigital}   and $gh -= $data->{_digSize};
+    my $geo   = $clock->geometry;
+    my ($gw, $gh) = split m/\D/, $geo; # Cannot use ->cget here
+    $gw < 5 and return; # not packed yet?
+    my %pi = $clock->_packinfo;
+    my ($px, $py) = ($pi{"-padx"}, $pi{"-pady"});
+    $data->{useDigital} and $gh -= $data->{_digSize};
     my $nwdth = _min ($gw, $gh - 1);
     abs ($nwdth - $owdth) > 5 && $nwdth >= 10 or return;
 
@@ -345,6 +399,7 @@ sub config ($@)
 	}
 
     my $data = $clock->privateData;
+    my $autoScale;
     foreach my $conf_spec (keys %$conf) {
 	(my $attr = $conf_spec) =~ s/^-//;
 	defined $def_config{$attr} && defined $data->{$attr} or next;
@@ -477,14 +532,19 @@ sub config ($@)
 		$clock->_createAnalog;
 		}
 	    }
+	elsif ($attr eq "autoScale") {
+	    $autoScale = !!$data->{autoScale};
+	    }
 	elsif ($attr eq "anaScale") {
-	    $data->{anaScale} eq "auto" and $data->{anaScale} = 0;
-	    if ($data->{anaScale} == 0) {	# 0 will be auto some time
-		$clock->Tk::bind         ("Tk::Clock","<<ResizeRequest>>", \&_resize_auto);
-		$clock->parent->Tk::bind ("<<ResizeRequest>>", \&_resize_auto);
-		$clock->_resize_auto;
+	    if ($data->{anaScale} eq "auto" or $data->{anaScale} <= 0) {
+		$data->{autoScale} = 1;
+		$data->{anaScale} = $clock
+		    ? int (100 * $clock->cget (-height) / $ana_base) || 100
+		    : 100;
+		$data->{_anaSize} = int ($ana_base * $data->{anaScale} / 100.);
 		}
 	    else {
+		defined $autoScale or $autoScale = 0;
 		my $new_size = int ($ana_base * $data->{anaScale} / 100.);
 		unless ($new_size == $data->{_anaSize}) {
 		    $data->{_anaSize} = $new_size;
@@ -501,12 +561,12 @@ sub config ($@)
 		}
 	    }
 	elsif ($attr eq "useAnalog") {
-	    if    ($old == 1 && $data->{useAnalog} == 0) {
+	    if    ($old == 1 && !$data->{useAnalog}) {
 		$clock->_destroyAnalog;
 		$clock->_destroyDigital;
 		$data->{useDigital} and $clock->_createDigital;
 		}
-	    elsif ($old == 0 && $data->{useAnalog} == 1) {
+	    elsif ($old == 0 &&  $data->{useAnalog}) {
 		$clock->_destroyDigital;
 		$clock->_createAnalog;
 		$data->{useDigital} and $clock->_createDigital;
@@ -514,10 +574,10 @@ sub config ($@)
 	    $clock->after (5, ["_run" => $clock]);
 	    }
 	elsif ($attr eq "useDigital") {
-	    if    ($old == 1 && $data->{useDigital} == 0) {
+	    if    ($old == 1 && !$data->{useDigital}) {
 		$clock->_destroyDigital;
 		}
-	    elsif ($old == 0 && $data->{useDigital} == 1) {
+	    elsif ($old == 0 &&  $data->{useDigital}) {
 		$clock->_createDigital;
 		}
 	    $clock->after (5, ["_run" => $clock]);
@@ -528,6 +588,18 @@ sub config ($@)
 		$clock->_createDigital;
 		$clock->after (5, ["_run" => $clock]);
 		}
+	    }
+	}
+    if (defined $autoScale) {
+	$data->{autoScale} = $autoScale;
+	if ($autoScale) {
+	    $clock->Tk::bind         ("Tk::Clock","<<ResizeRequest>>", \&_resize_auto);
+	    $clock->parent->Tk::bind (            "<<ResizeRequest>>", \&_resize_auto);
+	    $clock->_resize_auto;
+	    }
+	else {
+	    $clock->Tk::bind         ("Tk::Clock","<<ResizeRequest>>", sub {});
+	    $clock->parent->Tk::bind (            "<<ResizeRequest>>", sub {});
 	    }
 	}
     $clock->_resize;
@@ -574,7 +646,7 @@ sub _run ($)
 	$clock->itemconfigure ("time",
 	    -text => &{$data->{fmtt}} (@t[2,1,0,6]));
 
-    $data->{anaScale} == 0 and $clock->_resize_auto;
+    $data->{autoScale} and $clock->_resize_auto;
     } # _run
 
 1;
@@ -595,6 +667,7 @@ $clock = $parent->Clock (?-option => <value> ...?);
 $clock->config (	# These reflect the defaults
     useDigital	=> 1,
     useAnalog	=> 1,
+    autoScale	=> 0,
     anaScale	=> 100,
     ana24hour	=> 0,
     handColor	=> "Green4",
@@ -633,8 +706,8 @@ will do (put a tick on any tickFreq minute). When setting tickDiff to a
 true value, the major ticks will use a thicker line than the minor ticks.
 
 The analog clock can be enlaged or reduced using anaScale for which the
-default of 100% is about 72x72 pixels. Setting anaScale to 0, will try to
-resize the widget to it's container automatically.
+default of 100% is about 72x72 pixels. Setting autoScale to true, will
+try to resize the widget to it's container automatically.
 
 For digiAlign, "left", "center", and "right" are the only supported values.
 Any other value will be interpreted as the default "center".

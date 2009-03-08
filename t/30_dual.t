@@ -15,6 +15,7 @@ ok ($m = MainWindow->new (-title => "clock"),	"MainWindow");
 
 my %defconfig = (
     useDigital	=> 1,
+    autoScale	=> 1,
     useAnalog	=> 1,
     anaScale	=> 200,
     ana24hour	=> 0,
@@ -28,14 +29,16 @@ my %defconfig = (
     dateColor	=> "Gold",
     );
 
-ok (my $c1 = $m->Clock (-background => "Black"),	"Clock Local TimeZone");
+my $grid = $m->Frame ()->grid (-sticky => "news");
+
+ok (my $c1 = $grid->Clock (-background => "Black"),	"Clock Local TimeZone");
 like ($c1->config ((
     %defconfig,
     handColor  => "Red",
     timeZone   => $ENV{TZ} || undef,
     dateFormat => "Local",
     )), qr(^Tk::Clock=HASH), "config");
-ok ($c1->pack (-side => "left", -expand => 1, -fill => "both"), "pack");
+ok ($c1->grid (-column => 0, -row => 0, -sticky => "news"), "grid");
 
 ok (my $c2 = $m->Clock (-background => "Black"),	"Clock GMT");
 like ($c2->config (
@@ -44,7 +47,7 @@ like ($c2->config (
     timeZone   => "GMT",
     dateFormat => "London (GMT)",
     ), qr(^Tk::Clock=HASH), "config");
-ok ($c2->pack (-side => "left", -expand => 1, -fill => "both"), "pack");
+ok ($c2->grid (-column => 0, -row => 1, -sticky => "news"), "grid");
 
 ok (my $c3 = $m->Clock (-background => "Black"),	"Clock MET-1METDST");
 like ($c3->config (
@@ -53,7 +56,7 @@ like ($c3->config (
     timeZone   => "MET-1METDST",
     dateFormat => "Amsterdam (MET)",
     ), qr(^Tk::Clock=HASH), "config");
-ok ($c3->pack (-side => "left", -expand => 1, -fill => "both"), "pack");
+ok ($c3->grid (-column => 1, -row => 0, -sticky => "news"), "grid");
 
 ok (my $c4 = $m->Clock (-background => "Black"),	"Clock Tokyo");
 like ($c4->config (
@@ -62,9 +65,9 @@ like ($c4->config (
     timeZone   => "Asia/Tokyo",
     dateFormat => "Asia/Tokyo",
     ), qr(^Tk::Clock=HASH), "config");
-ok ($c4->pack (-side => "left", -expand => 1, -fill => "both"), "pack");
+ok ($c4->grid (-column => 1, -row => 1, -sticky => "news"), "grid");
 
-$delay += $period;
+$delay += 5 * $period;
 $c3->after ($delay, sub {
     $_->destroy for $c1, $c2, $c3, $c4;
     ok (!Exists ($_), "Destroy Clock") for $c1, $c2, $c3, $c4;
