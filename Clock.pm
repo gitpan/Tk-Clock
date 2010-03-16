@@ -5,7 +5,7 @@ package Tk::Clock;
 use strict;
 use warnings;
 
-our $VERSION = "0.27";
+our $VERSION = "0.28";
 
 use Carp;
 
@@ -552,6 +552,17 @@ sub config ($@)
 		    }
 		}
 	    }
+	elsif ($attr eq "backDrop" && $data->{useAnalog}) {
+	    $clock->delete ("back");
+	    if (ref $data->{backDrop} eq "Tk::Photo") {
+		$clock->createImage (0, 0,
+		    -anchor => "nw",
+		    -image  => $data->{backDrop},
+		    -tags   => "back",
+		    );
+		$clock->lower ("back", ($clock->find ("withtag", "tick"))[0]);
+		}
+	    }
 	elsif ($attr eq "useAnalog") {
 	    if    ($old == 1 && !$data->{useAnalog}) {
 		$clock->_destroyAnalog;
@@ -931,7 +942,7 @@ Thanks to all who have given me feedback.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 1999-2009 H.Merijn Brand
+Copyright (C) 1999-2010 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
