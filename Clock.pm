@@ -5,7 +5,7 @@ package Tk::Clock;
 use strict;
 use warnings;
 
-our $VERSION = "0.28";
+our $VERSION = "0.29";
 
 use Carp;
 
@@ -39,6 +39,13 @@ my %def_config = (
 
     ana24hour	=> 0,
     countDown	=> 0,
+    timerValue	=> 0,
+
+    useInfo	=> 0,
+
+    infoColor	=> "#cfb53b",
+    infoFormat	=> "HH:MM:SS",
+    infoFont	=> "fixed 6",
 
     useDigital	=> 1,
 
@@ -53,12 +60,13 @@ my %def_config = (
     dateFormat	=> "dd-mm-yy",
 
     fmtd	=> sub {
-	my ($d, $m, $y, $w) = @_;
-	sprintf "%02d-%02d-%02d", $d, $m + 1, $y % 100;
+	sprintf "%02d-%02d-%02d", $_[3], $_[4] + 1, $_[5] + 1900;
 	},
     fmtt	=> sub {
-	my ($h, $m, $s) = @_;
-	sprintf "%02d:%02d:%02d", $h, $m, $s;
+	sprintf "%02d:%02d:%02d", @_[2,1,0];
+	},
+    fmti	=> sub {
+	sprintf "%02d:%02d:%02d", @_[2,1,0];
 	},
 
     _anaSize	=> $ana_base,	# Default size (height & width)
@@ -256,6 +264,17 @@ sub _createAnalog ($)
 	    );
 
     my $h = ($data->{_anaSize} + 1) / 2 - 1;
+
+    if ($data->{useInfo}) {
+	$clock->createText ($h, int (1.3 * $h),
+	    -anchor => "n",
+	    -width  => int (1.2 * $h),
+	    -font   => $data->{infoFont},
+	    -fill   => $data->{infoColor},
+	    -text   => $data->{infoFormat},
+	    -tags   => "info");
+	}
+
     my $f = $data->{tickFreq} * 2;
     foreach my $dtick (0 .. 119) {
 	$dtick % $f and next;
@@ -326,11 +345,7 @@ sub _destroyAnalog ($)
 {
     my $clock = shift;
 
-    $clock->delete ("back");
-    $clock->delete ("tick");
-    $clock->delete ("hour");
-    $clock->delete ("min");
-    $clock->delete ("sec");
+    $clock->delete ($_) for qw( back info tick hour min sec );
     } # _destroyAnalog
 
 sub Populate
@@ -419,8 +434,20 @@ sub config ($@)
 	elsif ($attr eq "timeFont") {
 	    $clock->itemconfigure ("time", -font => $data->{timeFont});
 	    }
-	elsif ($attr eq "dateFormat") {
+	elsif ($attr eq "dateFormat" || $attr eq "timeFormat" || $attr eq "infoFormat") {
 	    my %fmt = (
+		"S"	=> '%d',	# 45
+		"SS"	=> '%02d',	# 45
+		"Sc"	=> '%02d',	# 45	countdown
+		"M"	=> '%d',	# 7
+		"MM"	=> '%02d',	# 07
+		"Mc"	=> '%02d',	# 07	countdown
+		"H"	=> '%d',	# 6
+		"HH"	=> '%02d',	# 06
+		"Hc"	=> '%02d',	# 06	countdown
+		"h"	=> '%d',	# 6	AM/PM
+		"hh"	=> '%02d',	# 06	AM/PM
+		"A"	=> '%s',	# PM
 		"d"	=> '%d',	# 6
 		"dd"	=> '%02d',	# 06
 		"ddd"	=> '%3s',	# Mon
@@ -436,8 +463,8 @@ sub config ($@)
 		"w"	=> '%d',	# 28 (week)
 		"ww"	=> '%02d',	# 28
 		);
-	    my $fmt = $data->{dateFormat};
-	    $fmt =~ m{[\%\@\$]} and croak "%, \@ and \$ not allowed in dateFormat";
+	    my $fmt = $data->{$attr};
+	    $fmt =~ m{[\%\@\$]} and croak "%, \@ and \$ not allowed in $attr";
 	    my $xfmt = join "|", reverse sort keys %fmt;
 	    my @fmt = split m/\b($xfmt)\b/, $fmt;
 	    my $args = "";
@@ -455,7 +482,8 @@ sub config ($@)
 			}
 		    else {
 			$args .= ', $' . substr ($f, 0, 1);
-			$f =~ m/^y+$/ and
+			$f =~ m/^[HMS]c/ and $args .= "c";
+			$f =~ m/^y+$/    and
 			    $args .= length ($f) < 3 ? " % 100" : " + 1900";
 			}
 		    }
@@ -464,56 +492,19 @@ sub config ($@)
 		    }
 		}
 	    $data->{Clock_h} = -1;	# force update;
-	    $data->{fmtd} = eval "
+	    $data->{"fmt".substr $attr, 0, 1} = eval "
 		sub
 		{
-		    my (\$d, \$m, \$y, \$wd, \$w) = \@_;
-		    \$w = \$w / 7 + 1;
+		    my (\$S,  \$M,  \$H, \$d, \$m, \$y, \$wd, \$yd, \$dst,
+			\$Sc, \$Mc, \$Hc) = \@_;
+		    my \$w = \$yd / 7 + 1;
+		    my \$h = \$H % 12;
+		    my \$A = \$H > 11 ? 'PM' : 'AM';
 		    sprintf qq!$fmt!$args;
 		    }";
 	    }
-	elsif ($attr eq "timeFormat") {
-	    my %fmt = (
-		"H"	=> '%d',	# 6
-		"HH"	=> '%02d',	# 06
-		"h"	=> '%d',	# 6	AM/PM
-		"hh"	=> '%02d',	# 06	AM/PM
-		"M"	=> '%d',	# 7
-		"MM"	=> '%02d',	# 07
-		"S"	=> '%d',	# 45
-		"SS"	=> '%02d',	# 45
-		"A"	=> '%s',	# PM
-		"dd"	=> '%.2s',	# Mo
-		"ddd"	=> '%.3s',	# Mon
-		"dddd"	=> '%s',	# Monday
-		);
-	    my $fmt = $data->{timeFormat};
-	    $fmt =~ m/[\%\@\$]/ and croak "%, \@ and \$ not allowed in timeFormat";
-	    my $xfmt = join "|", reverse sort keys %fmt;
-	    my @fmt = split m/\b($xfmt)\b/, $fmt;
-	    my $arg = "";
-	    $fmt = "";
-	    foreach my $f (@fmt) {
-		if ($f =~ m/^dd{1,3}$/) {
-		    $fmt .= $fmt{$f};
-		    $arg .= ", Tk::Clock::_wday (\$d, 1)";
-		    }
-		elsif (defined $fmt{$f}) {
-		    $fmt .= $fmt{$f};
-		    $arg .= ', $' . substr ($f, 0, 1);
-		    }
-		else {
-		    $fmt .= $f;
-		    }
-		}
-	    $data->{fmtt} = eval "
-		sub
-		{
-		    my (\$H, \$M, \$S, \$d) = \@_;
-		    my \$h = \$H % 12;
-		    my \$A = \$H > 11 ? 'PM' : 'AM';
-		    sprintf qq!$fmt!$arg;
-		    }";
+	elsif ($attr eq "timerValue") {
+	    $data->{timerStart} = $data->{timerValue} ? time : undef;
 	    }
 	elsif ($attr eq "tickFreq") {
 #	    $data->{tickFreq} < 1 ||
@@ -576,6 +567,15 @@ sub config ($@)
 		}
 	    $clock->after (5, ["_run" => $clock]);
 	    }
+	elsif ($attr eq "useInfo") {
+	    if ($old ^ $data->{useInfo} && $data->{useAnalog}) {
+		$clock->_destroyAnalog;
+		$clock->_destroyDigital;
+		$clock->_createAnalog;
+		$data->{useDigital} and $clock->_createDigital;
+		}
+	    $clock->after (5, ["_run" => $clock]);
+	    }
 	elsif ($attr eq "useDigital") {
 	    if    ($old == 1 && !$data->{useDigital}) {
 		$clock->_destroyDigital;
@@ -621,11 +621,30 @@ sub _run ($)
     $data->{_time_} = $t;
     my @t = localtime $t;
 
+    my ($Sc, $Mc, $Hc) = (0, 0, 0);
+    if ($data->{timerValue}) {
+	use integer;
+
+	$data->{timerStart} //= $t;
+	my $tv = $data->{timerValue} - ($t - $data->{timerStart});
+	if ($tv < 0) {
+	    $data->{timerValue} = 0;
+	    $data->{timerStart} = undef;
+	    }
+	else {
+	    $Sc = $tv % 60;
+	    $tv /= 60;
+	    $Mc = $tv % 60;
+	    $tv /= 60;
+	    $Hc = $tv;
+	    }
+	}
+    push @t, $Sc, $Mc, $Hc;
+
     unless ($t[2] == $data->{Clock_h}) {
 	$data->{Clock_h} = $t[2];
 	$data->{useDigital} and
-	    $clock->itemconfigure ("date",
-		-text => &{$data->{fmtd}} (@t[3,4,5,6,7]));
+	    $clock->itemconfigure ("date", -text => &{$data->{fmtd}} (@t));
 	}
 
     unless ($t[1] == $data->{Clock_m}) {
@@ -641,13 +660,15 @@ sub _run ($)
 	}
 
     $data->{Clock_s} = $t[0];
-    if ($data->{useAnalog} && $data->{useSecHand}) {
-	$clock->coords ("sec",
-	    $clock->_where ($data->{Clock_s}, 34, $data->{_anaSize}));
+    if ($data->{useAnalog}) {
+	$data->{useSecHand} and
+	    $clock->coords ("sec",
+		$clock->_where ($data->{Clock_s}, 34, $data->{_anaSize}));
+	$data->{useInfo} and
+	    $clock->itemconfigure ("info", -text => &{$data->{fmti}} (@t));
 	}
     $data->{useDigital} and
-	$clock->itemconfigure ("time",
-	    -text => &{$data->{fmtt}} (@t[2,1,0,6]));
+	$clock->itemconfigure ("time", -text => &{$data->{fmtt}} (@t));
 
     $data->{autoScale} and $clock->_resize_auto;
     } # _run
@@ -683,13 +704,19 @@ $clock->config (	# These reflect the defaults
     autoScale	=> 0,
     ana24hour	=> 0,
     countDown   => 0,
+    timerValue  => 0,
+
+    useInfo	=> 0,
+    infoColor	=> "#cfb53b",
+    infoFormat	=> "HH:MM:SS",
+    infoFont	=> "fixed 6",
 
     useDigital	=> 1,
     digiAlign   => "center",
-    timeFont	=> "fixed",
+    timeFont	=> "fixed 6",
     timeColor	=> "Red4",
     timeFormat	=> "HH:MM:SS",
-    dateFont	=> "fixed",
+    dateFont	=> "fixed 6",
     dateColor	=> "Blue4",
     dateFormat	=> "dd-mm-yy",
     );
@@ -710,6 +737,8 @@ value is in between parenthesis.
 
 =item useAnalog (1)
 
+=item useInfo (0)
+
 =item useDigital (1)
 
 Enable the analog clock (C<useAnalog>) and/or the digital clock (C<useDigital>)
@@ -727,6 +756,9 @@ in the widget. The analog clock will always be displayed above the digital part
 The analog clock displays ticks, hour hand, minutes hand and second hand.
 The digital part displays two parts, which are configurable. By default
 these are time and date.
+
+The C<useInfo> enables a text field between the backdrop of the analog
+clock and its items. You can use this field to display personal data.
 
 =item autoScale (0)
 
@@ -768,6 +800,15 @@ When C<countDown> is set to a true value, the clock will run backwards.
 This is a slightly experimental feature, it will not count down to a
 specific point in time, but will simply reverse the rotation, making
 the analog clock run counterclockwise.
+
+=item timerValue (0)
+
+This represents a countdown timer.
+
+When setting C<timerValue> to a number of seconds, the format values
+C<Hc>, C<Mc>, and C<Sc> will represent the hour, minute and second of
+the this value. When the time reaches 0, all countdown values are
+reset to 0.
 
 =item handColor ("Green4")
 
@@ -823,7 +864,7 @@ by the system. If unset, the local timezone is used.
   $clock->config (timeZone => "Europe/Amsterdam");
   $clock->config (timeZone => "MET-1METDST");
 
-=item timeFont ("fixed")
+=item timeFont ("fixed 6")
 
 Controls the font to be used for the top line in the digital clock. Will
 accept all fonts that are supported in your version of perl/Tk. This includes
@@ -842,14 +883,18 @@ Controls the color of the first line (time) of the digital clock.
 Defines the format of the first line of the digital clock. By default it
 will display the time in a 24-hour notation.
 
-Legal C<timeFormat> characters are C<H> and C<HH> for 24-hour, C<h> and C<hh>
-for AM/PM hour, C<M> and C<MM> for minutes, C<S> and C<SS> for seconds,
-C<A> for AM/PM indicator, C<d> and C<dd> for day-of-the week in two or three
-characters resp. and any separators C<:>, C<->, C<.> or C<space>.
+Legal C<timeFormat> characters are C<H> and C<HH> for 24-hour, C<h> and
+C<hh> for AM/PM hour, C<M> and C<MM> for minutes, C<S> and C<SS> for
+seconds, C<Hc> for countdown/timer hour, C<Mc> for countdown/timer
+minutes, C<Sc> for countdown/timer seconds, C<A> for AM/PM indicator,
+C<d> and C<dd> for day-of-the month, C<ddd> and C<dddd> for short and
+long weekday, C<m>, C<mm>, C<mmm> and C<mmmm> for month, C<y> and C<yy>
+for year, C<w> and C<ww> for week-number and any separators C<:>, C<->,
+C</> or C<space>.
 
   $clock->config (timeFormat => "hh:MM A");
 
-=item dateFont ("fixed")
+=item dateFont ("fixed 6")
 
 Controls the font to be used for the bottom line in the digital clock. Will
 accept all fonts that are supported in your version of perl/Tk. This includes
@@ -869,11 +914,34 @@ Defines the format of the second line of the digital clock. By default it
 will display the date in three groups of two digits representing the day of
 the month, the month, and the last two digits of the year, separated by dashes.
 
-Legal C<dateFormat> characters are C<d> and C<dd> for date, C<ddd> and C<dddd>
-for weekday, C<m>, C<mm>, C<mmm> and C<mmmm> for month, C<y> and C<yy> for year,
-C<w> and C<ww> for weeknumber and any separators C<:>, C<->, C</> or C<space>.
-
   $clock->config (dateFormat => "ww dd-mm");
+
+The supported format is the same as for C<timeFormat>.
+
+=item infoFont ("fixed 6")
+
+Controls the font to be used for the info label in the analog clock. Will
+accept all fonts that are supported in your version of perl/Tk. This includes
+both True Type and X11 notation.
+
+  $clock->config (infoFont => "{DejaVu Sans Mono} 8");
+
+=item infoColor ("#cfb53b")
+
+Controls the color of the info label of the analog clock (default is a
+shade of Gold).
+
+  $clock->config (infoColor => "Yellow");
+
+=item infoFormat ("HH:MM:SS")
+
+Defines the format of the label inside the analog clock. By default will not
+be displayed. Just as C<timeFormat> and C<dateFormat> the content is updated
+every second if enabled.
+
+  $clock->config (infoFormat => "BREITLING");
+
+The supported format is the same as for C<timeFormat>.
 
 =item digiAlign ("center")
 

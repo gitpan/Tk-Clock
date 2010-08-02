@@ -1,4 +1,11 @@
-0.28 - Tue 16 Mar 2009 <h.m.brand@xs4all.nl>
+0.29 - Mon 02 Aug 2010 <h.m.brand@xs4all.nl>
+
+    - Spell-checking
+    - Added useInfo, infoColor, infoFormat, and infoFont
+    - timeFormat, dateFormat and infoFormat now all support all abbreviations
+    - Added timerValue and corresponding Hc, Mc, and Sc format entries
+
+0.28 - Tue 16 Mar 2010 <h.m.brand@xs4all.nl>
 
     - Allow to change backdrop while running
     - Upped Copyright to 2010
