@@ -18,7 +18,7 @@
       "Test::More" : "0.98",
       "Test::Harness" : "3.23"
       },
-   "version" : "0.31",
+   "version" : "0.32",
    "name" : "Tk-Clock",
    "author" : [
       "H.Merijn Brand <h.m.brand@xs4all.nl>"
@@ -26,7 +26,7 @@
    "license" : "perl",
    "provides" : {
       "Tk::Clock" : {
-         "version" : "0.31",
+         "version" : "0.32",
          "file" : "Clock.pm"
          }
       },

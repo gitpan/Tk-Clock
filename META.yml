@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                    Tk-Clock
-version:                 0.31
+version:                 0.32
 abstract:                Clock widget with analog and digital display
 license:                 perl
 author:              
@@ -10,7 +10,7 @@ distribution_type:       module
 provides:
     Tk::Clock:
         file:            Clock.pm
-        version:         0.31
+        version:         0.32
 requires:     
     perl:                5.006
     Carp:                0
