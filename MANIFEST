@@ -17,4 +17,5 @@ t/30_dual.t
 t/40_backdrop.t
 t/eye.png
 t/eye2.png
-META.yml                                 Module meta-data (added by MakeMaker)
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)
