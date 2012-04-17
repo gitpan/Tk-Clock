@@ -18,7 +18,7 @@
       "Test::More" : "0.98",
       "Test::Harness" : "3.23"
       },
-   "version" : "0.32",
+   "version" : "0.33",
    "name" : "Tk-Clock",
    "author" : [
       "H.Merijn Brand <h.m.brand@xs4all.nl>"
@@ -26,7 +26,7 @@
    "license" : "perl",
    "provides" : {
       "Tk::Clock" : {
-         "version" : "0.32",
+         "version" : "0.33",
          "file" : "Clock.pm"
          }
       },
@@ -39,8 +39,8 @@
       "Carp" : "0"
       },
    "recommends" : {
-      "perl" : "5.014001",
-      "Tk" : "804.029_500"
+      "perl" : "5.014002",
+      "Tk" : "804.030"
       },
    "abstract" : "Clock widget with analog and digital display",
    "configure_requires" : {
