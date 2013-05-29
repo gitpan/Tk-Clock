@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright PROCURA B.V. (c) 1999-2012 H.Merijn Brand
+# Copyright PROCURA B.V. (c) 1999-2013 H.Merijn Brand
 
 require 5.006;
 
@@ -31,7 +31,9 @@ my %wm = (
 
     dist	  => { COMPRESS	=> "gzip -9f",
 		       SUFFIX	=> ".gz",
-		       }
+		       },
+    macro         => { TARFLAGS => "--format=ustar -c -v -f",
+		       },
     );
 $ExtUtils::MakeMaker::VERSION > 6.30 and $wm{LICENSE} = "perl";
 

@@ -5,7 +5,7 @@ package Tk::Clock;
 use strict;
 use warnings;
 
-our $VERSION = "0.33";
+our $VERSION = "0.34";
 
 use Carp;
 
@@ -385,6 +385,15 @@ sub Populate
     $clock->repeat (995, ["_run" => $clock]);
     } # Populate
 
+my %attr_weight = (
+    useDigital	=> 99980,
+    digiAlign	=> 99985,
+    useAnalog	=> 99990,
+    useInfo	=> 99991,
+    tickFreq	=> 99992,
+    anaScale	=> 99995,
+    );
+
 sub config
 {
     my $clock = shift;
@@ -406,7 +415,12 @@ sub config
 
     my $data = $clock->privateData;
     my $autoScale;
-    foreach my $conf_spec (keys %$conf) {
+    # sort, so the recreational attribute will be done last
+    foreach my $conf_spec (
+	    map  { $_->[0] }
+	    sort { $a->[1] <=> $b->[1] }
+	    map  { [ $_, $attr_weight{$_} || unpack "s>", $_ ] }
+	    keys %$conf) {
 	(my $attr = $conf_spec) =~ s/^-//;
 	defined $def_config{$attr} && defined $data->{$attr} or next;
 	my $old = $data->{$attr};
@@ -617,6 +631,8 @@ sub _run
     $data->{timeZone} and local $ENV{TZ} = $data->{timeZone};
     my $t = time;
     $t == $data->{_time_} and return;	# Same time, no update
+    $t <  $data->{_time_} and		# Time wound back (ntp or date command)
+	($data->{Clock_h}, $data->{Clock_m}, $data->{Clock_s}) = (-1, -1, -1);
     $data->{_time_} = $t;
     my @t = localtime $t;
 
@@ -1020,7 +1036,7 @@ Thanks to all who have given me feedback and weird ideas.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 1999-2012 H.Merijn Brand
+Copyright (C) 1999-2013 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.

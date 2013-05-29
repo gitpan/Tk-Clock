@@ -1,49 +1,66 @@
 {
-   "resources" : {
-      "repository" : "http://repo.or.cz/w/Tk-Clock.git",
-      "license" : "http://dev.perl.org/licenses/"
+   "prereqs" : {
+      "runtime" : {
+         "recommends" : {
+            "perl" : "5.016003",
+            "Tk" : "804.031"
+            },
+         "requires" : {
+            "Tk::Canvas" : "0",
+            "Tk::Derived" : "0",
+            "Tk::Widget" : "0",
+            "Tk" : "402.000",
+            "Carp" : "0",
+            "perl" : "5.006"
+            }
+         },
+      "test" : {
+         "requires" : {
+            "Test::Harness" : "0",
+            "Test::More" : "0",
+            "Test::NoWarnings" : "0"
+            },
+         "recommends" : {
+            "Test::More" : "0.98",
+            "Test::Harness" : "3.28"
+            }
+         },
+      "configure" : {
+         "requires" : {
+            "ExtUtils::MakeMaker" : "0"
+            }
+         }
       },
-   "meta-spec" : {
-      "version" : "2.0",
-      "url" : "https://metacpan.org/module/CPAN::Meta::Spec?#meta-spec"
-      },
-   "test_requires" : {
-      "Test::More" : "0",
-      "Test::Harness" : "0",
-      "Test::NoWarnings" : "0"
-      },
-   "distribution_type" : "module",
    "generated_by" : "Author",
-   "test_recommends" : {
-      "Test::More" : "0.98",
-      "Test::Harness" : "3.23"
+   "resources" : {
+      "repository" : {
+         "type" : "git",
+         "web" : "http://repo.or.cz/w/Tk-Clock.git",
+         "url" : "http://repo.or.cz/r/Tk-Clock.git"
+         },
+      "license" : [
+         "http://dev.perl.org/licenses/"
+         ]
       },
-   "version" : "0.33",
-   "name" : "Tk-Clock",
    "author" : [
       "H.Merijn Brand <h.m.brand@xs4all.nl>"
       ],
-   "license" : "perl",
    "provides" : {
       "Tk::Clock" : {
-         "version" : "0.33",
-         "file" : "Clock.pm"
+         "file" : "Clock.pm",
+         "version" : "0.34"
          }
       },
-   "requires" : {
-      "perl" : "5.006",
-      "Tk::Canvas" : "0",
-      "Tk::Derived" : "0",
-      "Tk::Widget" : "0",
-      "Tk" : "402.000",
-      "Carp" : "0"
-      },
-   "recommends" : {
-      "perl" : "5.014002",
-      "Tk" : "804.030"
-      },
    "abstract" : "Clock widget with analog and digital display",
-   "configure_requires" : {
-      "ExtUtils::MakeMaker" : "0"
-      }
+   "name" : "Tk-Clock",
+   "meta-spec" : {
+      "url" : "http://search.cpan.org/perldoc?CPAN::Meta::Spec",
+      "version" : "2"
+      },
+   "version" : "0.34",
+   "license" : [
+      "perl_5"
+      ],
+   "release_status" : "stable",
+   "dynamic_config" : 1
    }

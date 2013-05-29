@@ -1,38 +1,36 @@
---- #YAML:1.0
-name:                    Tk-Clock
-version:                 0.33
-abstract:                Clock widget with analog and digital display
-license:                 perl
-author:              
-    - H.Merijn Brand <h.m.brand@xs4all.nl>
-generated_by:            Author
-distribution_type:       module
-provides:
-    Tk::Clock:
-        file:            Clock.pm
-        version:         0.33
-requires:     
-    perl:                5.006
-    Carp:                0
-    Tk:                  402.000
-    Tk::Widget:          0
-    Tk::Derived:         0
-    Tk::Canvas:          0
-recommends:     
-    perl:                5.014002
-    Tk:                  804.030
-configure_requires:
-    ExtUtils::MakeMaker: 0
-test_requires:
-    Test::Harness:       0
-    Test::More:          0
-    Test::NoWarnings:    0
-test_recommends:
-    Test::Harness:       3.23
-    Test::More:          0.98
-resources:
-    license:             http://dev.perl.org/licenses/
-    repository:          http://repo.or.cz/w/Tk-Clock.git
-meta-spec:
-    version:             1.4
-    url:                 http://module-build.sourceforge.net/META-spec-v1.4.html
+--- 
+abstract: Clock widget with analog and digital display
+author: 
+  - H.Merijn Brand <h.m.brand@xs4all.nl>
+configure_requires: 
+  ExtUtils::MakeMaker: 0
+dynamic_config: 1
+generated_by: Author, CPAN::Meta::Converter version 2.130880
+license: perl
+meta-spec: 
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: '1.4'
+name: Tk-Clock
+provides: 
+  Tk::Clock: 
+    file: Clock.pm
+    version: '0.34'
+recommends: 
+  Test::Harness: '3.28'
+  Test::More: '0.98'
+  Tk: '804.031'
+  perl: '5.016003'
+requires: 
+  Carp: 0
+  Test::Harness: 0
+  Test::More: 0
+  Test::NoWarnings: 0
+  Tk: '402.000'
+  Tk::Canvas: 0
+  Tk::Derived: 0
+  Tk::Widget: 0
+  perl: '5.006'
+resources: 
+  license: http://dev.perl.org/licenses/
+  repository: http://repo.or.cz/r/Tk-Clock.git
+version: '0.34'
