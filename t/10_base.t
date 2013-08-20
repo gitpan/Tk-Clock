@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 23;
+use Test::More tests => 36;
 use Test::NoWarnings;
 
 BEGIN {
@@ -16,6 +16,18 @@ $m = eval { MainWindow->new  (-title => "clock"); } or
     skip_all ("No valid Tk environment");
 
 ok ($c = $m->Clock (-background => "Black"),	"Clock Widget");
+
+# Safe to use en_US.UTF-8, as the fallback is C and all values are the same
+foreach my $loc ("C", "en_US.UTF-8") {
+    is (Tk::Clock::_month ($loc, 0, 0), "1",       "Month   format m    Jan in $loc");
+    is (Tk::Clock::_month ($loc, 2, 1), "03",      "Month   format mm   Mar in $loc");
+    is (Tk::Clock::_month ($loc, 4, 2), "May",     "Month   format mmm  May in $loc");
+    is (Tk::Clock::_month ($loc, 6, 3), "July",    "Month   format mmmm Jul in $loc");
+
+    is (Tk::Clock::_wday  ($loc, 0, 0), "Sun",     "Weekday format ddd  Sun in $loc");
+    is (Tk::Clock::_wday  ($loc, 2, 1), "Tuesday", "Weekday format dddd Tue in $loc");
+    }
+
 like ($c->config (
     tickColor => "Orange",
     handColor => "Red",
@@ -106,6 +118,9 @@ $c->after ($delay, sub {
 	useAnalog  => 0,
 	useInfo    => 0,
 	useDigital => 1,
+	useLocale  => ($^O eq "MSWin32" ? "Japanese_Japan.932" : "ja_JP.utf8"),
+	timeFont   => "Helvetica 8",
+	dateFont   => "Helvetica 8",
 	dateFormat => "dddd\nd mmm yyy",
 	timeFormat => "",
 	), "Purple4 aD dddd\\nd mmm yyy ''");
@@ -119,6 +134,8 @@ $c->after ($delay, sub {
 	useInfo    => 1,
 	useDigital => 0,
 	anaScale   => 300,
+	timeFont   => "Helvetica 12",
+	dateFont   => "Helvetica 12",
 	infoFormat => "Tk-Clock",
 	), "Gray75  Ad scale 300");
     });
@@ -159,6 +176,7 @@ $delay += $period;
 $c->after ($delay, sub {
     $c->configure (-background => "Black");
     ok ($c->config ({
+	anaScale   => 250,
 	useAnalog  => 1,
 	useInfo    => 0,
 	useDigital => 0,
@@ -168,8 +186,20 @@ $c->after ($delay, sub {
 	handCenter => 1,
 	tickFreq   => 1,
 	tickDiff   => 1,
-	anaScale   => 250,
 	}), "        Station clock: hand centers and tick width");
+    });
+
+$delay += $period;
+$c->after ($delay, sub {
+    $c->configure (-background => "Black");
+    ok ($c->config ({
+	useInfo     => 1,
+	useDigital  => 1,
+	anaScale    => 300,
+	dateFormat  => "dd-mm-yyyy",
+	timeFormat  => "HH:MM:SS",
+	localOffset => -363967, # minus 4 days, 5 hours, 6 minutes and 7 seconds
+	}), "        Station clock: Time offset -4'05:06:07");
     });
 
 $delay += $period;

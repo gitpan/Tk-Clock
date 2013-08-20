@@ -5,7 +5,7 @@ author:
 configure_requires: 
   ExtUtils::MakeMaker: 0
 dynamic_config: 1
-generated_by: Author, CPAN::Meta::Converter version 2.130880
+generated_by: Author, CPAN::Meta::Converter version 2.132140
 license: perl
 meta-spec: 
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -14,7 +14,7 @@ name: Tk-Clock
 provides: 
   Tk::Clock: 
     file: Clock.pm
-    version: '0.34'
+    version: '0.35'
 recommends: 
   Test::Harness: '3.28'
   Test::More: '0.98'
@@ -33,4 +33,4 @@ requires:
 resources: 
   license: http://dev.perl.org/licenses/
   repository: http://repo.or.cz/r/Tk-Clock.git
-version: '0.34'
+version: '0.35'
