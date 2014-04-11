@@ -5,7 +5,7 @@ package Tk::Clock;
 use strict;
 use warnings;
 
-our $VERSION = "0.35";
+our $VERSION = "0.36";
 
 use Carp;
 
@@ -74,6 +74,7 @@ my %def_config = (
 
     _anaSize	=> $ana_base,	# Default size (height & width)
     _digSize	=> 26,		# Height
+    _digWdth	=> 72,		# Width
     );
 
 my %locale = (
@@ -106,6 +107,29 @@ my %locale = (
       },
     );
 
+sub _booleans
+{
+    my $data = shift;
+    $data->{$_} = !!$data->{$_} for qw(
+	ana24hour
+	autoScale
+	countDown
+	handCenter
+	useAnalog
+	useDigital
+	useInfo
+	useSecHand
+	);
+    } # _booleans
+
+sub _decode
+{
+    my $s = shift;
+    $s && $s =~ m{[\x80-\xff]} or return $s;
+    my $u = eval { Encode::decode ("UTF-8", $s, Encode::FB_CROAK) };
+    return ($@ ? $s : $u);
+    } # _decode
+
 sub _newLocale
 {
     my $locale = shift or return $locale{C};
@@ -119,13 +143,13 @@ sub _newLocale
 
     my $l = $locale{$locale} = {};
     foreach my $m (0 .. 11) {
-	@{$l->{month}[$m]} = map { Encode::decode ("UTF-8", $_) }
+	@{$l->{month}[$m]} = map { _decode ($_) }
 	    $m + 1, $locale{C}{month}[$m][1],
 	    POSIX::strftime ("%b", 0, 0, 0, 1, $m, 113),
 	    POSIX::strftime ("%B", 0, 0, 0, 1, $m, 113);
 	}
     foreach my $d (0 .. 6) {
-	@{$l->{day}[$d]}   = map { Encode::decode ("UTF-8", $_) }
+	@{$l->{day}[$d]}   = map { _decode ($_) }
 	    POSIX::strftime ("%a", 0, 0, 0, $d - 1, 0, 113),
 	    POSIX::strftime ("%A", 0, 0, 0, $d - 1, 0, 113);
 	}
@@ -195,7 +219,7 @@ sub _resize
     my $hght = $data->{useAnalog}  * $data->{_anaSize} +
 	       $data->{useDigital} * $data->{_digSize} + 1;
     my $wdth = _max ($data->{useAnalog}  * $data->{_anaSize},
-		     $data->{useDigital} * 72);
+		     $data->{useDigital} * $data->{_digWdth});
     my $dim  = "${wdth}x${hght}";
     my $geo   = $clock->parent->geometry;
     my ($pw, $ph) = split m/\D/, $geo; # Cannot use ->cget here
@@ -246,8 +270,29 @@ sub _createDigital
     my $clock = shift;
 
     my $data = $clock->privateData;
+
+    # Dynamically determine the size of the digital display
+    my @t = localtime (time + $data->{localOffset});
+    my ($wd, $hd) = do {
+	my $s_date = $data->{fmtd}->(@t, 0, 0, 0);
+	$s_date =~ s/\b([0-9])\b/0$1/g; # prepare "d" running from 9 to 10
+	my $f = $clock->Label (-font => $data->{dateFont})->cget (-font);
+	my %fm = $clock->fontMetrics ($f);
+	($clock->fontMeasure ($f, $s_date), $fm{"-linespace"} || 9);
+	};
+    my ($wt, $ht) = do {
+	my $s_time = $data->{fmtt}->(@t, 0, 0, 0);
+	$s_time =~ s/\b([0-9])\b/0$1/g; # prepare "h" running from 9 to 10
+	my $f = $clock->Label (-font => $data->{timeFont})->cget (-font);
+	my %fm = $clock->fontMetrics ($f);
+	($clock->fontMeasure ($f, $s_time), $fm{"-linespace"} || 9);
+	};
+    my $w = _max (72, int (1.1 * _max ($wt, $wd)));
+    $data->{_digSize} = $hd + 4 + $ht + 4; # height of date + time
+    $data->{_digWdth} = $w;
+
     my $wdth = _max ($data->{useAnalog}  * $data->{_anaSize},
-		     $data->{useDigital} * 72);
+		     $data->{useDigital} * $w);
     my ($pad, $anchor) = (5, "s");
     my ($x, $y) = ($wdth / 2, $data->{useAnalog} * $data->{_anaSize});
     if    ($data->{digiAlign} eq "left") {
@@ -256,14 +301,14 @@ sub _createDigital
     elsif ($data->{digiAlign} eq "right") {
 	($anchor, $x) = ("se", $wdth - $pad);
 	}
-    $clock->createText ($x, $y + $data->{_digSize},
+    $clock->createText ($x, $y + $ht + 4 + $hd,
 	-anchor	=> $anchor,
 	-width  => ($wdth - 2 * $pad),
 	-font   => $data->{dateFont},
 	-fill   => $data->{dateColor},
 	-text   => $data->{dateFormat},
 	-tags   => "date");
-    $clock->createText ($x, $y + 13,
+    $clock->createText ($x, $y + $ht + 2,
 	-anchor	=> $anchor,
 	-width  => ($wdth - 2 * $pad),
 	-font   => $data->{timeFont},
@@ -409,9 +454,11 @@ sub Populate
     if (ref $args eq "HASH") {
 	foreach my $arg (keys %$args) {
 	    (my $attr = $arg) =~ s/^-//;
+	    $attr =~ m/^_/ and next; # Internal use only!
 	    exists $data->{$attr} and $data->{$attr} = delete $args->{$arg};
 	    }
 	}
+    _booleans ($data);
 
     $clock->SUPER::Populate ($args);
 
@@ -471,6 +518,7 @@ sub config
 	    map  { [ $_, $attr_weight{$_} ] }
 	    keys %$conf) {
 	(my $attr = $conf_spec) =~ s/^-//;
+	$attr =~ m/^_/ and next; # Internal use only!
 	defined $def_config{$attr} && defined $data->{$attr} or next;
 	my $old = $data->{$attr};
 	$data->{$attr} = $conf->{$conf_spec};
@@ -495,6 +543,12 @@ sub config
 	    }
 	elsif ($attr eq "timeFont") {
 	    $clock->itemconfigure ("time", -font => $data->{timeFont});
+	    }
+	elsif ($attr eq "infoColor") {
+	    $clock->itemconfigure ("info", -fill => $data->{infoColor});
+	    }
+	elsif ($attr eq "infoFont") {
+	    $clock->itemconfigure ("info", -font => $data->{infoFont});
 	    }
 	elsif ($attr eq "useLocale") {
 	    $locale{$data->{useLocale}} or _newLocale ($data->{useLocale});
@@ -659,6 +713,7 @@ sub config
 		}
 	    }
 	}
+    _booleans ($data);
     if (defined $autoScale) {
 	$data->{autoScale} = $autoScale;
 	if ($autoScale) {
@@ -962,6 +1017,10 @@ day formats C<ddd> and C<dddd>.
   $clock->config (useLocale => $ENV{LC_TIME} // $ENV{LC_ALL}
                             // $ENV{LANG}    // "nl_NL.utf8");
 
+See L<http://docs.moodle.org/dev/Table_of_locales> for a table of locales
+and the Windows equivalents. Windows might not have a UTF8 version available
+of the required locale.
+
 =item timeFont ("fixed 6")
 
 Controls the font to be used for the top line in the digital clock. Will
@@ -1113,7 +1172,7 @@ Thanks to all who have given me feedback and weird ideas.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 1999-2013 H.Merijn Brand
+Copyright (C) 1999-2014 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
