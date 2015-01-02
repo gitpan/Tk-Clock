@@ -5,7 +5,7 @@ package Tk::Clock;
 use strict;
 use warnings;
 
-our $VERSION = "0.36";
+our $VERSION = "0.37";
 
 use Carp;
 
@@ -620,6 +620,8 @@ sub config
 		 q[     my $w = $yd / 7 + 1;				],
 		 q[     my $h = $H % 12;				],
 		 q[     my $A = $H > 11 ? "PM" : "AM";			],
+		 # AM/PM users expect 12:15 AM instead of 00:15 AM
+		 q[     $h ||= 12;					],
 		qq[     sprintf qq!$fmt!$args;				],
 		 q[     }						];
 	    }
@@ -1172,7 +1174,7 @@ Thanks to all who have given me feedback and weird ideas.
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 1999-2014 H.Merijn Brand
+Copyright (C) 1999-2015 H.Merijn Brand
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
