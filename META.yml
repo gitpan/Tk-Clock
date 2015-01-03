@@ -14,7 +14,7 @@ name: Tk-Clock
 provides: 
   Tk::Clock: 
     file: Clock.pm
-    version: '0.37'
+    version: '0.38'
 recommends: 
   Encode: '2.67'
   Test::More: '1.001014'
@@ -24,7 +24,7 @@ requires:
   Carp: 0
   Encode: 0
   POSIX: 0
-  Test::More: 0
+  Test::More: '0.88'
   Test::NoWarnings: 0
   Tk: '402.000'
   Tk::Canvas: 0
@@ -34,4 +34,4 @@ requires:
 resources: 
   license: http://dev.perl.org/licenses/
   repository: http://repo.or.cz/r/Tk-Clock.git
-version: '0.37'
+version: '0.38'
